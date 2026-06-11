@@ -3,44 +3,36 @@
 ================================================================
 
 The game is now a PWA (a small website that installs like an app).
-You host it online ONCE, open it on the tablet, and tap "Add to Home
-screen". After that it lives as an icon, opens full-screen, and works
-WITHOUT internet — all the code, fonts and sounds get saved on the
-tablet the first time it loads.
+It is ALREADY hosted online here:
+
+        >>>  https://hifistereo.github.io/Kidla/   <<<
+
+You open that link on the tablet ONCE and tap "Add to Home screen".
+After that it lives as an icon, opens full-screen, and works WITHOUT
+internet — all the code, fonts and sounds get saved on the tablet the
+first time it loads.
 
 You only need the internet for the one-time setup. After that you can
 keep Wi-Fi off forever.
 
 
 ================================================================
-STEP 1 — Put the folder online (do this once, on the PC)
+STEP 1 — Hosting (already done — GitHub Pages)
 ================================================================
-Pick ONE. Both give a free https:// address (required for the offline
-magic to work).
+The game is hosted on GitHub Pages from the repo  Hifistereo/Kidla
+(branch "main"), live at:
 
-  EASIEST — Netlify Drop (no account, no typing):
-    1. On the PC, open  https://app.netlify.com/drop  in a browser.
-    2. Drag the WHOLE game folder onto the page.
-    3. Wait for upload, then it shows an address like
-         https://something-random.netlify.app
-       That's your game link. (Make a free account if you want to keep
-       the same link / replace it later.)
+        https://hifistereo.github.io/Kidla/
 
-  MORE PERMANENT — GitHub Pages:
-    1. Create a free GitHub account + a new repository.
-    2. Upload the whole folder to it.
-    3. Repo Settings -> Pages -> deploy from the main branch.
-    4. It gives a link like  https://yourname.github.io/reponame/
-
-Note: you do NOT need the ".claude" folder or any ".md" plan files —
-just the game files (index.html, manifest.json, sw.js, the .jsx files,
-and the "audio", "vendor", "icons", "images" folders).
+Nothing to do here unless you want to change the game later — see
+"Updating the game later" below.
 
 
 ================================================================
 STEP 2 — Install it on the tablet (once, with internet)
 ================================================================
-1. On the Galaxy Tab, open Chrome and go to the link from Step 1.
+1. On the Galaxy Tab, open Chrome and go to:
+       https://hifistereo.github.io/Kidla/
 2. Tap once so it starts (this also unlocks the sound).
 3. Open Chrome's  menu  ->  "Add to Home screen"  (or "Install app").
    Confirm. A "Burtu Feja" unicorn icon appears on the home screen.
@@ -62,10 +54,14 @@ STEP 3 — Play offline
 ================================================================
 Updating the game later
 ================================================================
-If you change the game and re-host it, bump the version line near the
-top of  sw.js  (e.g. 'burtu-feja-v1' -> 'burtu-feja-v2') before
-uploading. The tablet picks up the new version the next time it opens
-the icon while online; offline it keeps using the last saved version.
+If you change the game, bump the version line near the top of  sw.js
+(e.g. 'burtu-feja-v1' -> 'burtu-feja-v2'), then push to GitHub:
+       git add -A
+       git commit -m "update"
+       git push
+GitHub Pages redeploys in a minute or two. The tablet picks up the new
+version the next time it opens the icon while online; offline it keeps
+using the last saved version.
 
 
 ================================================================
