@@ -1,6 +1,6 @@
 // app.jsx — root: state machine, device scaling, theming, tweaks
 const { useState: useS, useEffect: useE, useRef: useR } = React;
-const { Welcome, GamesHub, FairyMap, RewardScreen, RandomWords, MilestonePopup } = window;
+const { Welcome, GamesHub, ChapterSelect, CardGallery, FairyMap, RewardScreen, RandomWords, MilestonePopup } = window;
 const { SyllableGame, ReadFindGame, FirstLetterGame, BlendGame } = window;
 
 // number of milestone character images in images/milestones/ (01.png … NN.png)
@@ -141,10 +141,13 @@ function App() {
 
   // ── active lesson ──
   const [activeLevel, setActiveLevel] = useS(LEVELS[0]);
+  const [activeChapter, setActiveChapter] = useS(() =>
+    CHAPTERS.find(c => (SAVED ? SAVED.currentId : 1) <= c.endId) || CHAPTERS[CHAPTERS.length - 1]);
   const [qPos, setQPos] = useS(0);
   const ratingsRef = useR([]);
   const [earned, setEarned] = useS(3);
   const [newTreasure, setNewTreasure] = useS(null);
+  const [newCard, setNewCard] = useS(null); // collectible card unlocked on chapter completion
   const [rewardReturn, setRewardReturn] = useS('map'); // where "Turpināt" goes after a reward
 
   // one word per level
@@ -168,8 +171,12 @@ function App() {
     const old = totalStars;
     const nt = firstTime ? old + rating : old;
     const crossed = TREASURES.filter(tr => tr.at > old && tr.at <= nt);
+    // completing a chapter's last level (as new progress) unlocks its card
+    const ch = CHAPTERS.find(c => activeLevel.id >= c.startId && activeLevel.id <= c.endId);
+    const chapterDone = ch && activeLevel.id === ch.endId && firstTime;
     setEarned(rating);
     setNewTreasure(crossed.length ? crossed[crossed.length - 1] : null);
+    setNewCard(chapterDone ? ch.card : null);
     setLevelStars(p => ({ ...p, [activeLevel.id]: Math.max(prevBest, rating) }));
     setTotalStars(nt);
     setRewardReturn('map');
@@ -184,6 +191,7 @@ function App() {
     const crossed = TREASURES.filter(tr => tr.at > old && tr.at <= nt);
     setEarned(rating);
     setNewTreasure(crossed.length ? crossed[crossed.length - 1] : null);
+    setNewCard(null); // hub games never unlock journey cards
     setTotalStars(nt);
     setRewardReturn('hub');
     setScreen('reward');
@@ -192,13 +200,15 @@ function App() {
   function onRewardContinue() {
     if (rewardReturn === 'hub') { setScreen('hub'); return; }
     if (activeLevel.id === currentId && currentId < LEVELS.length) setCurrentId(currentId + 1);
+    // finishing a chapter sends the child back to the chapter list (next one unlocked)
+    if (newCard) { setNewCard(null); setScreen('chapters'); return; }
     setScreen('map');
   }
 
   // wipe all progress and begin again from level 1
   function startOver() {
     setCurrentId(1); setLevelStars({}); setTotalStars(0);
-    setActiveLevel(LEVELS[0]);
+    setActiveLevel(LEVELS[0]); setActiveChapter(CHAPTERS[0]);
     try { localStorage.removeItem(PROGRESS_KEY); } catch (e) {}
   }
 
@@ -209,10 +219,12 @@ function App() {
   const [randomReturn, setRandomReturn] = useS('hub');
   const [gameNonce, setGameNonce] = useS(0); // forces a fresh round on each launch
   function launchGame(target) {
-    if (target === 'map') { setScreen('map'); return; }
+    if (target === 'map') { setScreen('chapters'); return; }
+    if (target === 'cards') { setScreen('cards'); return; }
     setGameNonce(n => n + 1);
     setScreen(target);
   }
+  function pickChapter(ch) { setActiveChapter(ch); setScreen('map'); }
   function launchRandom(from) { setRandomReturn(from); setScreen('random'); }
 
   // accent colors for the hub games (match the GamesHub card hues)
@@ -230,14 +242,16 @@ function App() {
   let body = null;
   if (screen === 'welcome') body = <Welcome onStart={() => setScreen('hub')} musicOn={musicOn} onToggleMusic={toggleMusic} />;
   else if (screen === 'hub') body = <GamesHub totalStars={totalStars} onPick={launchGame} onRandom={() => launchRandom('hub')} musicOn={musicOn} onToggleMusic={toggleMusic} />;
-  else if (screen === 'map') body = <FairyMap currentId={currentId} levelStars={levelStars} totalStars={totalStars} onPlay={startLevel} onStartOver={startOver} onRandom={() => launchRandom('map')} onBack={() => setScreen('hub')} musicOn={musicOn} onToggleMusic={toggleMusic} />;
+  else if (screen === 'chapters') body = <ChapterSelect chapters={CHAPTERS} currentId={currentId} levelStars={levelStars} totalStars={totalStars} onPick={pickChapter} onBack={() => setScreen('hub')} musicOn={musicOn} onToggleMusic={toggleMusic} />;
+  else if (screen === 'cards') body = <CardGallery chapters={CHAPTERS} currentId={currentId} onBack={() => setScreen('hub')} musicOn={musicOn} onToggleMusic={toggleMusic} />;
+  else if (screen === 'map') body = <FairyMap chapter={activeChapter} currentId={currentId} levelStars={levelStars} totalStars={totalStars} onPlay={startLevel} onStartOver={startOver} onRandom={() => launchRandom('map')} onBack={() => setScreen('chapters')} musicOn={musicOn} onToggleMusic={toggleMusic} />;
   else if (screen === 'random') body = <RandomWords words={unlockedWords} onExit={() => setScreen(randomReturn)} musicOn={musicOn} onToggleMusic={toggleMusic} />;
   else if (screen === 'game') body = (
     <SyllableGame
       key={activeLevel.id + '-' + qPos + '-' + mode}
       wordKey={queue[qPos]} mode={mode} scale={scale} accent={accent}
       progress={{ index: qPos, total: queue.length }}
-      onWin={onWordWin} onExit={() => setScreen('map')} onWordDone={handleWordDone}
+      onWin={onWordWin} onExit={() => setScreen('map')}
       musicOn={musicOn} onToggleMusic={toggleMusic} />
   );
   else if (screen === 'readfind') body = (
@@ -255,7 +269,7 @@ function App() {
       onDone={onGameRoundDone} onExit={() => setScreen('hub')} onWordDone={handleWordDone}
       musicOn={musicOn} onToggleMusic={toggleMusic} />
   );
-  else if (screen === 'reward') body = <RewardScreen starsEarned={earned} totalStars={totalStars} newTreasure={newTreasure} onContinue={onRewardContinue} />;
+  else if (screen === 'reward') body = <RewardScreen starsEarned={earned} totalStars={totalStars} newTreasure={newTreasure} newCard={newCard} onContinue={onRewardContinue} />;
 
   const cssVars = {
     '--bg1': pal.bg1, '--bg2': pal.bg2, '--surface': pal.surface, '--surface2': pal.surface2,

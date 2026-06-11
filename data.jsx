@@ -260,6 +260,29 @@ const LEVELS = LEVEL_WORDS.map((word, i) => ({
   side: i % 2 ? 'r' : 'l',
 }));
 
+// ─────────────────────────────────────────────────────────────
+// Chapters — the journey split into bite-size books of CHAPTER_SIZE words
+// each, so the child can actually *finish* one. Derived 1:1 from LEVELS;
+// a chapter/card is unlocked once its last level is completed (endId <
+// currentId), so nothing new needs persisting — currentId stays the
+// single source of truth. Each chapter awards one collectible card.
+// ─────────────────────────────────────────────────────────────
+const CHAPTER_SIZE = 10;
+const MILESTONE_CARD_IMAGES = 10; // images/milestones/01..10.png exist today
+const CHAPTERS = [];
+for (let i = 0; i < LEVELS.length; i += CHAPTER_SIZE) {
+  const levels = LEVELS.slice(i, i + CHAPTER_SIZE);
+  const id = CHAPTERS.length + 1;                          // 1..N
+  const img = ((id - 1) % MILESTONE_CARD_IMAGES) + 1;      // cards beyond 10 reuse art
+  CHAPTERS.push({
+    id,
+    levels,
+    startId: levels[0].id,
+    endId: levels[levels.length - 1].id,
+    card: `images/milestones/${String(img).padStart(2, '0')}.png`,
+  });
+}
+
 // rewards unlocked at star milestones (ceiling ≈ 109 levels × 3⭐ ≈ 327)
 const TREASURES = [
   { at: 5,   icon: '🎀', name: 'Lentīte' },
@@ -367,7 +390,7 @@ function StarCount({ value }) {
 }
 
 Object.assign(window, {
-  PALETTES, HUES, GOLD, GOLD_DARK, WORDS, LEVELS, TREASURES,
+  PALETTES, HUES, GOLD, GOLD_DARK, WORDS, LEVELS, CHAPTERS, CHAPTER_SIZE, TREASURES,
   LETTER_SOUNDS, LV_ALPHABET, BLEND_WORDS,
   pickDistractors, pickWordDistractors, pickLetterDistractors, shuffle,
   Sparkle, SparkleField, Fairy, SpeechBubble, StarCount,

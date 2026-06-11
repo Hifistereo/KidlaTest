@@ -135,6 +135,7 @@ function Welcome({ onStart, musicOn, onToggleMusic }) {
 function GamesHub({ totalStars, onPick, onRandom, musicOn, onToggleMusic }) {
   const CARDS = [
     { key: 'map',         icon: '🗺️', hue: 'lilac', title: 'Ceļojums',      sub: 'Saliec vārdus no zilbēm' },
+    { key: 'cards',       icon: '🎴', hue: 'rose',  title: 'Manas kartiņas', sub: 'Tavas balvas kartiņas' },
     { key: 'readfind',    icon: '🔎', hue: 'sky',   title: 'Atrodi attēlu',  sub: 'Izlasi vārdu, atrodi bildi' },
     { key: 'firstletter', icon: '🔤', hue: 'mint',  title: 'Pirmais burts',  sub: 'Ar kuru burtu sākas?' },
     { key: 'blend',       icon: '🔊', hue: 'peach', title: 'Skaņas',         sub: 'Klausies un saliec vārdu' },
@@ -189,20 +190,150 @@ function GamesHub({ totalStars, onPick, onRandom, musicOn, onToggleMusic }) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// CHAPTER SELECT — the journey, split into short books of ~10 words.
+// Each chapter the child can actually finish; completing one unlocks the
+// next plus a collectible card. State is derived from the global currentId.
+// ─────────────────────────────────────────────────────────────
+function ChapterSelect({ chapters, currentId, levelStars, totalStars, onPick, onBack, musicOn, onToggleMusic }) {
+  return (
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
+      <Sky />
+      <SparkleField count={6} />
+
+      {/* top bar */}
+      <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '60px 18px 6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button onClick={onBack} className="kid-btn ghost" aria-label="Atpakaļ uz spēlēm" title="Spēles"
+            style={{ width: 46, height: 46, fontSize: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>‹</button>
+          <div className="display" style={{ fontSize: 20, fontWeight: 600, color: 'var(--primary)' }}>Ceļojums</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {onToggleMusic && <MusicButton on={musicOn} onToggle={onToggleMusic} />}
+          <StarCount value={totalStars} />
+        </div>
+      </div>
+
+      {/* chapter list */}
+      <div style={{ position: 'relative', zIndex: 5, flex: 1, overflow: 'auto', padding: '10px 18px 30px' }}>
+        {chapters.map((ch, i) => {
+          const state = ch.startId > currentId ? 'locked' : ch.endId < currentId ? 'done' : 'current';
+          const accent = HUES[ch.levels[0].hue];
+          const done = Math.min(ch.levels.length, Math.max(0, currentId - ch.startId));
+          const sub = state === 'locked' ? 'Vēl aizvērts'
+            : state === 'done' ? 'Pabeigts ✓'
+            : `${done} / ${ch.levels.length} vārdi`;
+          return (
+            <button key={ch.id} onClick={() => state !== 'locked' && onPick(ch)} className="tile" style={{
+              width: '100%', border: 'none', textAlign: 'left', marginBottom: 14,
+              display: 'flex', alignItems: 'center', gap: 16, padding: '16px 18px', borderRadius: 26,
+              background: 'var(--surface)', boxShadow: `0 7px 0 ${accent[1]}, 0 11px 20px rgba(140,90,130,.14)`,
+              opacity: state === 'locked' ? .6 : 1, cursor: state === 'locked' ? 'default' : 'pointer',
+              animation: `slide-up .5s ease ${i * 0.04}s both`,
+            }}>
+              <div style={{
+                width: 64, height: 64, borderRadius: 20, flexShrink: 0, overflow: 'hidden',
+                background: state === 'locked' ? 'rgba(140,90,130,.12)' : accent[0],
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30,
+                boxShadow: state === 'locked' ? 'none' : `0 4px 0 ${accent[1]}`,
+              }}>
+                {state === 'done'
+                  ? <img src={ch.card} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={(e) => { e.target.style.display = 'none'; }} />
+                  : state === 'locked' ? <span style={{ opacity: .5 }}>🔒</span>
+                  : <span>📖</span>}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="display" style={{ fontSize: 22, fontWeight: 600, color: 'var(--ink)' }}>{ch.id}. nodaļa</div>
+                <div className="display" style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', opacity: .6 }}>{sub}</div>
+              </div>
+              <span style={{ fontSize: 26, color: 'var(--primary)', flexShrink: 0 }}>
+                {state === 'locked' ? '🔒' : state === 'done' ? '✓' : '▸'}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// CARD GALLERY — "Manas kartiņas". One collectible card per chapter:
+// unlocked cards show the picture, the rest are grey "?" placeholders so
+// the child can see how many of the total remain. Derived from currentId.
+// ─────────────────────────────────────────────────────────────
+function CardGallery({ chapters, currentId, onBack, musicOn, onToggleMusic }) {
+  const unlocked = chapters.filter(c => c.endId < currentId).length;
+  return (
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
+      <Sky />
+      <SparkleField count={6} />
+
+      {/* top bar */}
+      <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '60px 18px 6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button onClick={onBack} className="kid-btn ghost" aria-label="Atpakaļ uz spēlēm" title="Spēles"
+            style={{ width: 46, height: 46, fontSize: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>‹</button>
+          <div className="display" style={{ fontSize: 20, fontWeight: 600, color: 'var(--primary)' }}>Manas kartiņas</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {onToggleMusic && <MusicButton on={musicOn} onToggle={onToggleMusic} />}
+          <div className="display" style={{
+            display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 999,
+            background: 'var(--surface)', fontSize: 16, fontWeight: 700, color: 'var(--primary)',
+            boxShadow: '0 4px 12px rgba(140,90,130,.16)',
+          }}>🎴 {unlocked} / {chapters.length}</div>
+        </div>
+      </div>
+
+      {/* card grid */}
+      <div style={{ position: 'relative', zIndex: 5, flex: 1, overflow: 'auto', padding: '12px 18px 30px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+          {chapters.map((ch, i) => {
+            const isUnlocked = ch.endId < currentId;
+            return (
+              <div key={ch.id} style={{
+                aspectRatio: '3 / 4', borderRadius: 18, overflow: 'hidden', position: 'relative',
+                background: isUnlocked ? 'var(--surface)' : 'rgba(140,90,130,.10)',
+                boxShadow: isUnlocked
+                  ? '0 6px 16px rgba(120,60,110,.22), 0 0 0 3px rgba(255,255,255,.85)'
+                  : 'inset 0 2px 10px rgba(140,90,130,.12)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                animation: `slide-up .45s ease ${i * 0.03}s both`,
+              }}>
+                {isUnlocked
+                  ? <img src={ch.card} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={(e) => { e.target.style.display = 'none'; }} />
+                  : <span style={{ fontSize: 40, fontWeight: 700, color: 'rgba(140,90,130,.45)' }}>?</span>}
+                <div style={{
+                  position: 'absolute', bottom: 4, left: 4, minWidth: 22, height: 22, padding: '0 6px',
+                  borderRadius: 999, background: isUnlocked ? 'var(--primary)' : 'rgba(140,90,130,.35)',
+                  color: '#fff', fontSize: 12, fontWeight: 700,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>{ch.id}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // FAIRY MAP (level select)
 // ─────────────────────────────────────────────────────────────
-function FairyMap({ currentId, levelStars, totalStars, onPlay, onStartOver, onRandom, onBack, musicOn, onToggleMusic }) {
+function FairyMap({ chapter, currentId, levelStars, totalStars, onPlay, onStartOver, onRandom, onBack, musicOn, onToggleMusic }) {
   const [askReset, setAskReset] = useSt(false);
+  const levels = chapter.levels;
   // Keep the map parked on the current level so returning after a win lands
   // where the player left off (no scrolling down from the top each time).
   const scrollerRef = useRf(null);
   useEf(() => {
     const el = scrollerRef.current;
     if (!el) return;
-    const idx = Math.max(0, currentId - 1);
+    const idx = Math.min(levels.length - 1, Math.max(0, currentId - chapter.startId));
     const nodeTop = 110 + idx * 132;      // matches node layout below
     el.scrollTop = Math.max(0, nodeTop - el.clientHeight / 2 + 46);
-  }, [currentId]);
+  }, [currentId, chapter.id]);
 
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
@@ -213,11 +344,11 @@ function FairyMap({ currentId, levelStars, totalStars, onPlay, onStartOver, onRa
       <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '60px 18px 12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {onBack && (
-            <button onClick={onBack} className="kid-btn ghost" aria-label="Atpakaļ uz spēlēm" title="Spēles"
+            <button onClick={onBack} className="kid-btn ghost" aria-label="Atpakaļ uz nodaļām" title="Nodaļas"
               style={{ width: 46, height: 46, fontSize: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>‹</button>
           )}
           <div style={{ width: 46, height: 46, borderRadius: '50%', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, boxShadow: '0 4px 12px rgba(140,90,130,.16)' }}>🐰</div>
-          <div className="display" style={{ fontSize: 18, fontWeight: 600, color: 'var(--ink)' }}>Zaķausis</div>
+          <div className="display" style={{ fontSize: 18, fontWeight: 600, color: 'var(--ink)' }}>{chapter.id}. nodaļa</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button onClick={onRandom} className="kid-btn ghost" aria-label="Jaukti vārdi" title="Jaukti vārdi"
@@ -231,7 +362,7 @@ function FairyMap({ currentId, levelStars, totalStars, onPlay, onStartOver, onRa
 
       {/* scrollable trail */}
       <div ref={scrollerRef} style={{ position: 'relative', zIndex: 5, flex: 1, overflow: 'auto' }}>
-        <div style={{ position: 'relative', height: LEVELS.length * 132 + 150, padding: '8px 0 40px' }}>
+        <div style={{ position: 'relative', height: levels.length * 132 + 150, padding: '8px 0 40px' }}>
           {/* castle goal at top */}
           <div style={{ position: 'absolute', top: 6, left: 0, right: 0, textAlign: 'center' }}>
             <div style={{ fontSize: 56, filter: 'drop-shadow(0 6px 8px rgba(140,90,130,.2))', animation: 'floaty-slow 5s ease-in-out infinite' }}>🏰</div>
@@ -241,7 +372,7 @@ function FairyMap({ currentId, levelStars, totalStars, onPlay, onStartOver, onRa
           {/* dashed center trail */}
           <div style={{ position: 'absolute', top: 96, bottom: 30, left: '50%', width: 0, borderLeft: '5px dashed rgba(255,255,255,.6)', transform: 'translateX(-50%)' }} />
 
-          {LEVELS.map((lv, idx) => {
+          {levels.map((lv, idx) => {
             const top = 110 + idx * 132;
             const offset = lv.side === 'l' ? -64 : 64;
             const state = lv.id < currentId ? 'done' : lv.id === currentId ? 'current' : 'locked';
@@ -386,7 +517,7 @@ function RandomWords({ words, onExit, musicOn, onToggleMusic }) {
 // ─────────────────────────────────────────────────────────────
 // REWARD / CELEBRATION
 // ─────────────────────────────────────────────────────────────
-function RewardScreen({ starsEarned, totalStars, newTreasure, onContinue }) {
+function RewardScreen({ starsEarned, totalStars, newTreasure, newCard, onContinue }) {
   const confetti = useRf(null);
   if (!confetti.current) {
     const cols = ['#ffd1ec', '#ffe5aa', '#c9e8ff', '#d8c9ff', '#c9f3df', '#ffc9c9'];
@@ -405,7 +536,7 @@ function RewardScreen({ starsEarned, totalStars, newTreasure, onContinue }) {
   const nIdx = TREASURES.indexOf(next);
   const prevAt = nIdx > 0 ? TREASURES[nIdx - 1].at : 0;
   const pct = Math.min(100, Math.max(4, Math.round(((totalStars - prevAt) / (next.at - prevAt)) * 100)));
-  const praise = starsEarned >= 3 ? 'Lieliski!' : starsEarned === 2 ? 'Malacis!' : 'Tu to spēji!';
+  const praise = newCard ? 'Nodaļa pabeigta!' : starsEarned >= 3 ? 'Lieliski!' : starsEarned === 2 ? 'Malacis!' : 'Tu to spēji!';
 
   return (
     <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
@@ -423,7 +554,23 @@ function RewardScreen({ starsEarned, totalStars, newTreasure, onContinue }) {
         <div style={{ animation: 'pop-in .5s ease both' }}>
           <Fairy size={120} mood="cheer" />
         </div>
-        <div className="display" style={{ marginTop: 8, fontSize: 46, fontWeight: 700, color: 'var(--primary)', filter: 'drop-shadow(0 3px 0 rgba(255,255,255,.6))', animation: 'pop-in .5s ease .1s both' }}>{praise}</div>
+        <div className="display" style={{ marginTop: 8, fontSize: newCard ? 38 : 46, fontWeight: 700, color: 'var(--primary)', filter: 'drop-shadow(0 3px 0 rgba(255,255,255,.6))', animation: 'pop-in .5s ease .1s both' }}>{praise}</div>
+
+        {/* new collectible card reveal (chapter complete) */}
+        {newCard && (
+          <div style={{ marginTop: 14, animation: 'pop-in .6s cubic-bezier(.34,1.56,.64,1) .25s both' }}>
+            <div className="display" style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', opacity: .75 }}>🎴 Jauna kartiņa!</div>
+            <div style={{
+              width: 150, height: 200, borderRadius: 22, margin: '10px auto 0',
+              background: 'var(--surface)', overflow: 'hidden',
+              boxShadow: '0 16px 40px rgba(120,60,110,.4), 0 0 0 5px rgba(255,255,255,.85)',
+              animation: 'bob 1.8s ease-in-out infinite',
+            }}>
+              <img src={newCard} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                onError={(e) => { e.target.style.display = 'none'; }} />
+            </div>
+          </div>
+        )}
 
         {/* earned stars */}
         <div style={{ display: 'flex', gap: 14, marginTop: 16 }}>
@@ -463,4 +610,4 @@ function RewardScreen({ starsEarned, totalStars, newTreasure, onContinue }) {
   );
 }
 
-Object.assign(window, { Sky, MusicButton, MilestonePopup, Welcome, GamesHub, FairyMap, RewardScreen, RandomWords });
+Object.assign(window, { Sky, MusicButton, MilestonePopup, Welcome, GamesHub, ChapterSelect, CardGallery, FairyMap, RewardScreen, RandomWords });
