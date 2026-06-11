@@ -86,6 +86,232 @@ function MusicButton({ on, onToggle, style = {} }) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// REST TIMER — "Kikija nogurst". The fairy (not the child) gets tired:
+// a gentle yawn warning first, later a calm goodnight scene, then a
+// sleeping-fairy cooldown screen until she is rested again.
+// ─────────────────────────────────────────────────────────────
+
+// non-blocking corner toast shown a few minutes before the session ends
+function TiredToast() {
+  return (
+    <div style={{
+      position: 'absolute', left: 14, right: 14, bottom: 28, zIndex: 180, pointerEvents: 'none',
+      display: 'flex', alignItems: 'flex-end', gap: 4, animation: 'slide-up .5s ease both',
+    }}>
+      <Fairy size={62} />
+      <SpeechBubble style={{ fontSize: 15, maxWidth: 250 }}>
+        Kikija sāk nogurst… 🥱 Vēl mazliet — un viņa ies gulēt!
+      </SpeechBubble>
+    </div>
+  );
+}
+
+// dark starry backdrop for the goodnight / sleep screens (theme-independent)
+function NightSky({ children }) {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, overflow: 'hidden',
+      background: 'linear-gradient(180deg, #2b2452 0%, #46376b 55%, #6b5290 100%)',
+    }}>
+      {[[30, 90, 4], [120, 50, 3], [210, 110, 5], [300, 70, 3], [70, 200, 3], [330, 180, 4], [160, 160, 3], [250, 230, 4], [40, 300, 3], [350, 330, 3]].map((s, i) => (
+        <div key={i} style={{
+          position: 'absolute', left: s[0], top: s[1], width: s[2], height: s[2], borderRadius: '50%',
+          background: '#fff', opacity: .8, animation: `sparkle ${2 + (i % 3)}s ease-in-out ${i * 0.3}s infinite`,
+        }} />
+      ))}
+      {children}
+    </div>
+  );
+}
+
+// floating 💤 cluster above a sleeping fairy
+function Zzz() {
+  return (
+    <>
+      {[0, 1, 2].map(i => (
+        <div key={i} style={{
+          position: 'absolute', top: -6, right: -12 - i * 4, fontSize: 20 + i * 5,
+          animation: `zzz-float 2.8s ease-out ${i * 0.9}s infinite`,
+        }}>💤</div>
+      ))}
+    </>
+  );
+}
+
+// calm session ending: positive recap + the child "tucks the fairy in"
+function GoodnightScreen({ sessionWords, sessionStars, onGoodnight }) {
+  return (
+    <div style={{ position: 'absolute', inset: 0 }}>
+      <NightSky />
+      <div style={{ position: 'absolute', top: 64, right: 34, fontSize: 64, filter: 'drop-shadow(0 0 18px rgba(255,240,180,.55))', animation: 'floaty-slow 6s ease-in-out infinite' }}>🌙</div>
+      <div style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 30px', textAlign: 'center' }}>
+        <div style={{ position: 'relative', animation: 'pop-in .6s ease both' }}>
+          <Fairy size={130} />
+          <Zzz />
+        </div>
+        <div className="display" style={{ marginTop: 14, fontSize: 33, fontWeight: 700, color: '#fff', animation: 'slide-up .6s ease .15s both' }}>Kikija ir nogurusi 🥱</div>
+        <div className="display" style={{ marginTop: 8, fontSize: 17, fontWeight: 500, color: '#fff', opacity: .85, animation: 'slide-up .6s ease .25s both' }}>Tu šodien biji malacis!</div>
+
+        <div style={{ marginTop: 18, background: 'rgba(255,255,255,.14)', borderRadius: 24, padding: '14px 26px', animation: 'slide-up .6s ease .35s both' }}>
+          <div className="display" style={{ fontSize: 18, fontWeight: 600, color: '#fff' }}>Šodien: {sessionWords} vārdi · ⭐ {sessionStars}</div>
+        </div>
+
+        <div style={{ marginTop: 22, animation: 'star-pop .7s ease .6s both' }}>
+          <div style={{ fontSize: 62, filter: 'drop-shadow(0 0 16px rgba(255,220,120,.8))' }}>🌟</div>
+          <div className="display" style={{ fontSize: 15, fontWeight: 600, color: '#ffe9b0', marginTop: 4 }}>Tava labunakts zvaigznīte!</div>
+        </div>
+
+        <button onClick={onGoodnight} className="kid-btn" style={{ marginTop: 30, padding: '16px 44px', fontSize: 23, fontWeight: 600, animation: 'slide-up .6s ease .8s both' }}>Ar labu nakti! 🌙</button>
+      </div>
+    </div>
+  );
+}
+
+// cooldown: the fairy sleeps while a moon travels an arc toward the sun.
+// Cards stay browsable (calm activity). Parents wake her early by holding
+// the moon for 3 seconds.
+function SleepScreen({ sleepUntil, cooldownMs, onWake, onShowCards }) {
+  const [now, setNow] = useSt(() => Date.now());
+  useEf(() => {
+    const id = setInterval(() => setNow(Date.now()), 20000);
+    return () => clearInterval(id);
+  }, []);
+  const remaining = Math.max(0, (sleepUntil || 0) - now);
+  const awake = remaining <= 0;
+  const p = cooldownMs > 0 ? Math.min(1, Math.max(0, 1 - remaining / cooldownMs)) : 1;
+
+  // parent escape hatch: press-and-hold the moon
+  const holdT = useRf(null);
+  const [holding, setHolding] = useSt(false);
+  const startHold = () => {
+    setHolding(true);
+    holdT.current = setTimeout(() => { setHolding(false); onWake(); }, 3000);
+  };
+  const endHold = () => {
+    setHolding(false);
+    if (holdT.current) { clearTimeout(holdT.current); holdT.current = null; }
+  };
+  useEf(() => endHold, []);
+
+  // moon position along the arc: left horizon → top → the sun on the right
+  const W = 320, H = 150, R = 128, CX = W / 2, CY = H - 6;
+  const a = Math.PI * (1 - p);
+  const mx = CX + R * Math.cos(a), my = CY - R * Math.sin(a);
+
+  if (awake) return (
+    <div style={{ position: 'absolute', inset: 0 }}>
+      <Sky />
+      <SparkleField count={8} />
+      <div style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 30px', textAlign: 'center' }}>
+        <div style={{ fontSize: 84, animation: 'pop-in .6s ease both', filter: 'drop-shadow(0 0 22px rgba(255,210,90,.7))' }}>☀️</div>
+        <div style={{ marginTop: 10, animation: 'pop-in .6s ease .1s both' }}><Fairy size={120} mood="cheer" /></div>
+        <div className="display" style={{ marginTop: 12, fontSize: 32, fontWeight: 700, color: 'var(--primary)', animation: 'slide-up .6s ease .2s both' }}>Kikija ir atpūtusies! ☀️</div>
+        <button onClick={onWake} className="kid-btn" style={{ marginTop: 30, padding: '18px 56px', fontSize: 25, fontWeight: 600, animation: 'slide-up .6s ease .4s both' }}>Spēlēt!</button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ position: 'absolute', inset: 0 }}>
+      <NightSky />
+      <div style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 26px', textAlign: 'center' }}>
+        <div style={{ position: 'relative', animation: 'pop-in .6s ease both' }}>
+          <Fairy size={120} float={false} />
+          <Zzz />
+        </div>
+        <div className="display" style={{ marginTop: 10, fontSize: 30, fontWeight: 700, color: '#fff' }}>Kikija guļ… 💤</div>
+        <div className="display" style={{ marginTop: 6, fontSize: 16, fontWeight: 500, color: '#fff', opacity: .8 }}>Kad mēness aizies līdz saulei, viņa pamodīsies!</div>
+
+        {/* moon→sun arc (kid-friendly remaining-time visual, no countdown) */}
+        <div style={{ position: 'relative', width: W, height: H, marginTop: 26 }}>
+          <svg width={W} height={H} style={{ position: 'absolute', inset: 0 }}>
+            <path d={`M ${CX - R} ${CY} A ${R} ${R} 0 0 1 ${CX + R} ${CY}`} fill="none"
+              stroke="rgba(255,255,255,.35)" strokeWidth="4" strokeDasharray="2 10" strokeLinecap="round" />
+          </svg>
+          <div style={{ position: 'absolute', left: CX + R - 16, top: CY - 16, fontSize: 30, opacity: .95 }}>☀️</div>
+          <div
+            onPointerDown={startHold} onPointerUp={endHold} onPointerLeave={endHold} onPointerCancel={endHold}
+            style={{
+              position: 'absolute', left: mx - 22, top: my - 22, width: 44, height: 44,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 34,
+              cursor: 'pointer', touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none',
+              filter: 'drop-shadow(0 0 12px rgba(255,240,180,.7))',
+              transform: holding ? 'scale(1.3)' : 'scale(1)', transition: 'transform 2.9s ease',
+            }}>🌙</div>
+        </div>
+
+        <button onClick={onShowCards} className="kid-btn ghost" style={{ marginTop: 30, padding: '14px 34px', fontSize: 20, fontWeight: 600 }}>🎴 Manas kartiņas</button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// CARD PEEK — overlay with the collected cards, openable from inside any
+// game (🎴 in the top bar). The game underneath keeps running untouched.
+// ─────────────────────────────────────────────────────────────
+function CardPeek({ chapters, currentId, onClose }) {
+  const unlocked = chapters.filter(c => c.endId < currentId).length;
+  return (
+    <div onClick={onClose} style={{
+      position: 'absolute', inset: 0, zIndex: 150, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'rgba(80,40,70,.32)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: 364, background: 'var(--surface)', borderRadius: 30, padding: '16px 0 18px',
+        boxShadow: '0 20px 50px rgba(140,90,130,.35)', animation: 'pop-in .3s ease both',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px 6px' }}>
+          <div className="display" style={{ fontSize: 20, fontWeight: 600, color: 'var(--primary)' }}>🎴 Manas kartiņas</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="display" style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', opacity: .7 }}>{unlocked} / {chapters.length}</div>
+            <button onClick={onClose} className="kid-btn ghost" aria-label="Aizvērt"
+              style={{ width: 40, height: 40, fontSize: 17, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>✕</button>
+          </div>
+        </div>
+
+        {unlocked === 0 ? (
+          <div style={{ padding: '18px 24px 10px', textAlign: 'center' }}>
+            <div style={{ fontSize: 44 }}>📖</div>
+            <div className="display" style={{ marginTop: 8, fontSize: 17, fontWeight: 600, color: 'var(--ink)', opacity: .75 }}>Vēl nav kartiņu — pabeidz nodaļu Ceļojumā!</div>
+          </div>
+        ) : (
+          <div style={{
+            display: 'flex', gap: 14, overflowX: 'auto', padding: '10px 20px 8px',
+            scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch',
+          }}>
+            {chapters.map(ch => {
+              const isUnlocked = ch.endId < currentId;
+              return (
+                <div key={ch.id} style={{
+                  width: 180, height: 240, flexShrink: 0, borderRadius: 20, overflow: 'hidden', position: 'relative',
+                  scrollSnapAlign: 'center',
+                  background: isUnlocked ? 'var(--surface2)' : 'rgba(140,90,130,.10)',
+                  boxShadow: isUnlocked
+                    ? '0 8px 20px rgba(120,60,110,.25), 0 0 0 3px rgba(255,255,255,.85)'
+                    : 'inset 0 2px 10px rgba(140,90,130,.12)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {isUnlocked
+                    ? <img src={ch.card} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={(e) => { e.target.style.display = 'none'; }} />
+                    : <span style={{ fontSize: 48, fontWeight: 700, color: 'rgba(140,90,130,.45)' }}>?</span>}
+                  <div style={{
+                    position: 'absolute', bottom: 6, left: 6, minWidth: 24, height: 24, padding: '0 7px',
+                    borderRadius: 999, background: isUnlocked ? 'var(--primary)' : 'rgba(140,90,130,.35)',
+                    color: '#fff', fontSize: 13, fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>{ch.id}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // WELCOME
 // ─────────────────────────────────────────────────────────────
 function Welcome({ onStart, musicOn, onToggleMusic }) {
@@ -135,7 +361,6 @@ function Welcome({ onStart, musicOn, onToggleMusic }) {
 function GamesHub({ totalStars, onPick, onRandom, musicOn, onToggleMusic }) {
   const CARDS = [
     { key: 'map',         icon: '🗺️', hue: 'lilac', title: 'Ceļojums',      sub: 'Saliec vārdus no zilbēm' },
-    { key: 'cards',       icon: '🎴', hue: 'rose',  title: 'Manas kartiņas', sub: 'Tavas balvas kartiņas' },
     { key: 'readfind',    icon: '🔎', hue: 'sky',   title: 'Atrodi attēlu',  sub: 'Izlasi vārdu, atrodi bildi' },
     { key: 'firstletter', icon: '🔤', hue: 'mint',  title: 'Pirmais burts',  sub: 'Ar kuru burtu sākas?' },
     { key: 'blend',       icon: '🔊', hue: 'peach', title: 'Skaņas',         sub: 'Klausies un saliec vārdu' },
@@ -321,18 +546,43 @@ function CardGallery({ chapters, currentId, onBack, musicOn, onToggleMusic }) {
 // ─────────────────────────────────────────────────────────────
 // FAIRY MAP (level select)
 // ─────────────────────────────────────────────────────────────
-function FairyMap({ chapter, currentId, levelStars, totalStars, onPlay, onStartOver, onRandom, onBack, musicOn, onToggleMusic }) {
+function FairyMap({ chapter, currentId, levelStars, totalStars, onPlay, onStartOver, onRandom, onBack, onShowCards, musicOn, onToggleMusic }) {
   const [askReset, setAskReset] = useSt(false);
   const levels = chapter.levels;
-  // Keep the map parked on the current level so returning after a win lands
-  // where the player left off (no scrolling down from the top each time).
+  const curIdx = Math.min(levels.length - 1, Math.max(0, currentId - chapter.startId));
+  const chapterAllDone = currentId > chapter.endId;
+  // travelled-trail end: the current node's center (whole trail when done)
+  const doneEndY = 110 + curIdx * 132 + 46;
+  // On open, glide from the castle down to the current level so the motion
+  // itself shows where to continue; afterwards keep the map parked there.
   const scrollerRef = useRf(null);
+  const didIntro = useRf(false);
+  const [arriveBurst, setArriveBurst] = useSt(false);
+  const burstT = useRf(null);
+  useEf(() => () => { if (burstT.current) clearTimeout(burstT.current); }, []);
   useEf(() => {
     const el = scrollerRef.current;
     if (!el) return;
-    const idx = Math.min(levels.length - 1, Math.max(0, currentId - chapter.startId));
-    const nodeTop = 110 + idx * 132;      // matches node layout below
-    el.scrollTop = Math.max(0, nodeTop - el.clientHeight / 2 + 46);
+    const nodeTop = 110 + curIdx * 132;   // matches node layout below
+    const target = Math.max(0, nodeTop - el.clientHeight / 2 + 46);
+    const burst = () => {
+      setArriveBurst(true);
+      if (burstT.current) clearTimeout(burstT.current);
+      burstT.current = setTimeout(() => setArriveBurst(false), 1500);
+    };
+    if (didIntro.current) { el.scrollTo({ top: target, behavior: 'smooth' }); return; }
+    didIntro.current = true;
+    if (target < 60) { el.scrollTop = target; burst(); return; }
+    el.scrollTop = 0;
+    const t0 = performance.now(), dur = 850;
+    let raf;
+    const step = (t) => {
+      const p = Math.min(1, (t - t0) / dur);
+      el.scrollTop = target * (1 - Math.pow(1 - p, 3)); // ease-out
+      if (p < 1) raf = requestAnimationFrame(step); else burst();
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
   }, [currentId, chapter.id]);
 
   return (
@@ -347,7 +597,10 @@ function FairyMap({ chapter, currentId, levelStars, totalStars, onPlay, onStartO
             <button onClick={onBack} className="kid-btn ghost" aria-label="Atpakaļ uz nodaļām" title="Nodaļas"
               style={{ width: 46, height: 46, fontSize: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>‹</button>
           )}
-          <div style={{ width: 46, height: 46, borderRadius: '50%', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, boxShadow: '0 4px 12px rgba(140,90,130,.16)' }}>🐰</div>
+          {onShowCards && (
+            <button onClick={onShowCards} className="kid-btn ghost" aria-label="Manas kartiņas" title="Manas kartiņas"
+              style={{ width: 46, height: 46, fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>🎴</button>
+          )}
           <div className="display" style={{ fontSize: 18, fontWeight: 600, color: 'var(--ink)' }}>{chapter.id}. nodaļa</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -369,8 +622,23 @@ function FairyMap({ chapter, currentId, levelStars, totalStars, onPlay, onStartO
             <div className="display" style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', opacity: .7 }}>Feju pils</div>
           </div>
 
-          {/* dashed center trail */}
-          <div style={{ position: 'absolute', top: 96, bottom: 30, left: '50%', width: 0, borderLeft: '5px dashed rgba(255,255,255,.6)', transform: 'translateX(-50%)' }} />
+          {/* fairy-dust trail: colored up to the current level, faded dashed beyond */}
+          <div style={{
+            position: 'absolute', top: 96, left: '50%', width: 6, transform: 'translateX(-50%)', borderRadius: 3,
+            ...(chapterAllDone ? { bottom: 30 } : { height: doneEndY - 96 }),
+            background: `linear-gradient(180deg, var(--primary) 0%, ${GOLD} 100%)`,
+            boxShadow: '0 0 12px 2px rgba(255,215,130,.55)',
+          }} />
+          {!chapterAllDone && (
+            <div style={{ position: 'absolute', top: doneEndY, bottom: 30, left: '50%', width: 0, borderLeft: '5px dashed rgba(255,255,255,.6)', transform: 'translateX(-50%)' }} />
+          )}
+          {/* little sparkles along the travelled path */}
+          {Array.from({ length: Math.max(0, Math.floor(((chapterAllDone ? levels.length * 132 + 120 : doneEndY) - 140) / 110)) }).map((_, i) => (
+            <div key={'tw' + i} style={{
+              position: 'absolute', top: 150 + i * 110, left: 'calc(50% + 9px)', fontSize: 13, pointerEvents: 'none',
+              animation: `sparkle ${2.2 + (i % 3) * 0.5}s ease-in-out ${i * 0.4}s infinite`,
+            }}>✨</div>
+          ))}
 
           {levels.map((lv, idx) => {
             const top = 110 + idx * 132;
@@ -384,9 +652,22 @@ function FairyMap({ chapter, currentId, levelStars, totalStars, onPlay, onStartO
                 {state === 'current' && (
                   <>
                     <div style={{ position: 'absolute', inset: -10, borderRadius: '50%', border: `4px solid ${accent[0]}`, animation: 'pulse-ring 1.6s ease-out infinite' }} />
-                    <div style={{ position: 'absolute', bottom: 102, left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap', animation: 'floaty 2.2s ease-in-out infinite' }}>
+                    <div style={{ position: 'absolute', bottom: 150, left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap', animation: 'floaty 2.2s ease-in-out infinite', pointerEvents: 'none' }}>
                       <div className="kid-btn" style={{ padding: '8px 18px', fontSize: 15, fontWeight: 600, boxShadow: '0 4px 0 var(--primary-dark)' }}>Sākt ▸</div>
                     </div>
+                    {/* the fairy stands right where the journey continues */}
+                    <div style={{ position: 'absolute', bottom: 92, left: '50%', transform: 'translateX(-50%)', pointerEvents: 'none' }}>
+                      <Fairy size={54} />
+                    </div>
+                    {arriveBurst && (
+                      <div style={{ position: 'absolute', inset: -40, pointerEvents: 'none', animation: 'fade-out .4s ease 1s forwards' }}>
+                        {Array.from({ length: 8 }).map((_, i) => (
+                          <div key={i} style={{ position: 'absolute', left: '50%', top: '50%', transform: `rotate(${i * 45}deg) translateY(-68px)` }}>
+                            <div style={{ fontSize: 20, animation: `star-pop .5s ease ${i * 0.05}s both` }}>{['⭐', '✨', '🌟'][i % 3]}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </>
                 )}
                 <button
@@ -448,7 +729,7 @@ function FairyMap({ chapter, currentId, levelStars, totalStars, onPlay, onStartO
 // ─────────────────────────────────────────────────────────────
 // RANDOM WORDS (free review of unlocked words)
 // ─────────────────────────────────────────────────────────────
-function RandomWords({ words, onExit, musicOn, onToggleMusic }) {
+function RandomWords({ words, onExit, musicOn, onToggleMusic, onShowCards, restPending, onWordSeen }) {
   const list = words && words.length ? words : Object.keys(WORDS).slice(0, 1);
   const randomWord = (avoid) => {
     if (list.length <= 1) return list[0];
@@ -461,7 +742,13 @@ function RandomWords({ words, onExit, musicOn, onToggleMusic }) {
   // speak the word whenever a new one is shown
   useEf(() => { playWord(word); }, [word]);
 
-  const next = () => setWord(randomWord(word));
+  // when the rest limit hit, finish the current word, then exit instead of
+  // dealing a new one (App turns the exit into the goodnight scene)
+  const next = () => {
+    if (restPending) { onExit(); return; }
+    if (onWordSeen) onWordSeen();
+    setWord(randomWord(word));
+  };
 
   const data = WORDS[word] || {};
   const hueKeys = Object.keys(HUES);
@@ -475,7 +762,11 @@ function RandomWords({ words, onExit, musicOn, onToggleMusic }) {
       <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '60px 18px 0' }}>
         <button onClick={onExit} className="kid-btn ghost" style={{ padding: '10px 20px', fontSize: 17, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>‹ Iziet</button>
         <div className="display" style={{ fontSize: 18, fontWeight: 600, color: 'var(--ink)' }}>Jaukti vārdi 🎲</div>
-        <div style={{ width: 92, display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+          {onShowCards && (
+            <button onClick={onShowCards} className="kid-btn ghost" aria-label="Manas kartiņas" title="Manas kartiņas"
+              style={{ width: 44, height: 44, fontSize: 19, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>🎴</button>
+          )}
           {onToggleMusic && <MusicButton on={musicOn} onToggle={onToggleMusic} />}
         </div>
       </div>
@@ -610,4 +901,7 @@ function RewardScreen({ starsEarned, totalStars, newTreasure, newCard, onContinu
   );
 }
 
-Object.assign(window, { Sky, MusicButton, MilestonePopup, Welcome, GamesHub, ChapterSelect, CardGallery, FairyMap, RewardScreen, RandomWords });
+Object.assign(window, {
+  Sky, MusicButton, MilestonePopup, Welcome, GamesHub, ChapterSelect, CardGallery, FairyMap, RewardScreen, RandomWords,
+  TiredToast, NightSky, GoodnightScreen, SleepScreen, CardPeek,
+});

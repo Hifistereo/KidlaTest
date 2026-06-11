@@ -107,13 +107,17 @@ function ProgressDots({ index, total }) {
 }
 
 // Shared shell: top bar, sparkles, and win overlay for lesson and hub games.
-function GameFrame({ onExit, index, total, won, musicOn, onToggleMusic, children }) {
+function GameFrame({ onExit, index, total, won, musicOn, onToggleMusic, onShowCards, children }) {
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <SparkleField count={7} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '64px 20px 0' }}>
         <button onClick={onExit} className="kid-btn ghost" style={{ width: 46, height: 46, fontSize: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>‹</button>
         <ProgressDots index={index} total={total} />
+        {onShowCards && (
+          <button onClick={onShowCards} className="kid-btn ghost" aria-label="Manas kartiņas" title="Manas kartiņas"
+            style={{ width: 44, height: 44, fontSize: 19, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>🎴</button>
+        )}
         {onToggleMusic ? <MusicButton on={musicOn} onToggle={onToggleMusic} /> : <div style={{ width: 46 }} />}
       </div>
       {children}
@@ -143,7 +147,7 @@ function WordPictureCard({ wordKey, data, accent, won, paddingTop = 14 }) {
   );
 }
 
-function SyllableGame({ wordKey, mode, scale, accent, progress, onWin, onExit, onWordDone, musicOn, onToggleMusic }) {
+function SyllableGame({ wordKey, mode, scale, accent, progress, onWin, onExit, onWordDone, musicOn, onToggleMusic, onShowCards }) {
   const data = WORDS[wordKey];
   const answer = data.syll;
   const n = answer.length;
@@ -325,7 +329,7 @@ function SyllableGame({ wordKey, mode, scale, accent, progress, onWin, onExit, o
   };
 
   return (
-    <GameFrame onExit={onExit} index={progress.index} total={progress.total} won={won} musicOn={musicOn} onToggleMusic={onToggleMusic}>
+    <GameFrame onExit={onExit} index={progress.index} total={progress.total} won={won} musicOn={musicOn} onToggleMusic={onToggleMusic} onShowCards={onShowCards}>
       <WordPictureCard wordKey={wordKey} data={data} accent={accent} won={won} paddingTop={14} />
 
       {/* prompt */}

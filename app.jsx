@@ -1,6 +1,7 @@
 // app.jsx — root: state machine, device scaling, theming, tweaks
 const { useState: useS, useEffect: useE, useRef: useR } = React;
 const { Welcome, GamesHub, ChapterSelect, CardGallery, FairyMap, RewardScreen, RandomWords, MilestonePopup } = window;
+const { TiredToast, GoodnightScreen, SleepScreen, CardPeek } = window;
 const { SyllableGame, ReadFindGame, FirstLetterGame, BlendGame } = window;
 
 // number of milestone character images in images/milestones/ (01.png … NN.png)
@@ -10,7 +11,9 @@ const STREAK_STEP = 10; // pop a celebration every N words in a row
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "theme": "Saulriets",
   "lessonMode": "Pieskaries (tap)",
-  "mascot": true
+  "mascot": true,
+  "playMinutes": "15 min",
+  "restMinutes": "45 min"
 }/*EDITMODE-END*/;
 
 const MODE_MAP = { 'Pieskaries (tap)': 'tap', 'Aizvelc (drag)': 'drag', 'Izvēlies (choose)': 'choose' };
@@ -31,6 +34,25 @@ const MUSIC_KEY = 'burtu-feja-music';
 function loadMusicOn() {
   try { return localStorage.getItem(MUSIC_KEY) !== 'off'; } catch (e) { return true; }
 }
+
+// ── rest-timer session (survives reloads so the budget can't be bypassed) ──
+// One "sitting" of play: { playedMs, lastTickTs, sleepUntil }. The budget
+// resets when the fairy has finished her rest or when the app sat unused
+// long enough to count as a fresh sitting.
+const SESSION_KEY = 'burtu-feja-session';
+const IDLE_RESET_MS = 30 * 60 * 1000;
+const SAVED_SESSION = (() => {
+  let s = null;
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (raw) s = JSON.parse(raw);
+  } catch (e) {}
+  s = { playedMs: 0, lastTickTs: 0, sleepUntil: 0, ...(s || {}) };
+  const now = Date.now();
+  if (s.sleepUntil && now >= s.sleepUntil) { s.playedMs = 0; s.sleepUntil = 0; }
+  else if (!s.sleepUntil && now - s.lastTickTs > IDLE_RESET_MS) s.playedMs = 0;
+  return s;
+})();
 
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
@@ -62,16 +84,89 @@ function App() {
     };
   }, []);
 
+  // ── progress state (seeded from localStorage, else fresh start) ──
+  const [screen, setScreen] = useS(SAVED_SESSION.sleepUntil > Date.now() ? 'sleep' : 'welcome');
+  const screenRef = useR(screen);
+  screenRef.current = screen;
+
   // react to the on/off choice: persist it and play/pause accordingly.
+  // Music also rests while the fairy sleeps (calm goodnight/sleep screens).
+  const asleepScreen = screen === 'goodnight' || screen === 'sleep';
   useE(() => {
     try { localStorage.setItem(MUSIC_KEY, musicOn ? 'on' : 'off'); } catch (e) {}
     const bg = bgRef.current;
     if (!bg) return;
-    if (musicOn) { const p = bg.play(); if (p && p.catch) p.catch(() => {}); }
+    if (musicOn && !asleepScreen) { const p = bg.play(); if (p && p.catch) p.catch(() => {}); }
     else bg.pause();
-  }, [musicOn]);
+  }, [musicOn, asleepScreen]);
 
   const toggleMusic = () => setMusicOn(v => !v);
+
+  // ── rest timer: "Kikija nogurst" ──
+  // Counts visible play time in 5 s ticks. At WARN a yawn toast appears; at
+  // the limit restPending is set and the goodnight scene starts at the next
+  // natural boundary (a menu screen) so a word is never interrupted.
+  const PLAY_LIMIT_MS = (parseInt(t.playMinutes) || 15) * 60000;
+  const WARN_MS = Math.max(60000, PLAY_LIMIT_MS - 3 * 60000);
+  const COOLDOWN_MS = (parseInt(t.restMinutes) || 45) * 60000;
+
+  const [session, setSession] = useS(SAVED_SESSION);
+  const [restPending, setRestPending] = useS(false);
+  const [tiredToast, setTiredToast] = useS(false);
+  const [sessionWords, setSessionWords] = useS(0);
+  const [sessionStars, setSessionStars] = useS(0);
+  const warnRef = useR(false);
+  const toastT = useR(null);
+
+  useE(() => {
+    const id = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      const scr = screenRef.current;
+      if (scr === 'welcome' || scr === 'goodnight' || scr === 'sleep') return;
+      setSession(s => ({ ...s, playedMs: s.playedMs + 5000, lastTickTs: Date.now() }));
+    }, 5000);
+    return () => { clearInterval(id); if (toastT.current) clearTimeout(toastT.current); };
+  }, []);
+
+  useE(() => {
+    try { localStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch (e) {}
+  }, [session]);
+
+  useE(() => {
+    if (session.sleepUntil) return;
+    if (session.playedMs >= PLAY_LIMIT_MS) { setRestPending(true); return; }
+    if (session.playedMs >= WARN_MS && !warnRef.current) {
+      warnRef.current = true;
+      setTiredToast(true);
+      toastT.current = setTimeout(() => setTiredToast(false), 6500);
+    }
+  }, [session.playedMs, session.sleepUntil, PLAY_LIMIT_MS, WARN_MS]);
+
+  // once rest is pending, any landing on a menu screen turns into goodnight
+  useE(() => {
+    if (!restPending) return;
+    if (screen === 'hub' || screen === 'chapters' || screen === 'map' || screen === 'cards') setScreen('goodnight');
+  }, [restPending, screen]);
+
+  function onGoodnight() {
+    setSession(s => ({ ...s, sleepUntil: Date.now() + COOLDOWN_MS }));
+    setRestPending(false);
+    setScreen('sleep');
+  }
+
+  function onWake() {
+    setSession({ playedMs: 0, lastTickTs: Date.now(), sleepUntil: 0 });
+    warnRef.current = false;
+    setTiredToast(false);
+    setRestPending(false);
+    setSessionWords(0);
+    setSessionStars(0);
+    setScreen('hub');
+  }
+
+  // collected-cards overlay, openable from inside any game (🎴 in top bar)
+  const [cardsOpen, setCardsOpen] = useS(false);
+  const openCards = () => setCardsOpen(true);
 
   // ── word-streak milestones ──
   // Each game reports every word via onWordDone(perfect). A "streak" is the
@@ -84,6 +179,7 @@ function App() {
   useE(() => () => clearMilestoneTimers(), []);
 
   function handleWordDone(perfect) {
+    setSessionWords(w => w + 1); // session recap for the goodnight screen
     if (!perfect) { streakRef.current = 0; return; }
     const s = streakRef.current + 1;
     streakRef.current = s;
@@ -126,8 +222,6 @@ function App() {
     };
   }, []);
 
-  // ── progress state (seeded from localStorage, else fresh start) ──
-  const [screen, setScreen] = useS('welcome');
   const [currentId, setCurrentId] = useS(SAVED ? SAVED.currentId : 1);
   const [levelStars, setLevelStars] = useS(SAVED ? SAVED.levelStars : {});
   const [totalStars, setTotalStars] = useS(SAVED ? SAVED.totalStars : 0);
@@ -179,6 +273,8 @@ function App() {
     setNewCard(chapterDone ? ch.card : null);
     setLevelStars(p => ({ ...p, [activeLevel.id]: Math.max(prevBest, rating) }));
     setTotalStars(nt);
+    setSessionWords(w => w + 1);
+    setSessionStars(s => s + rating);
     setRewardReturn('map');
     setScreen('reward');
   }
@@ -193,6 +289,7 @@ function App() {
     setNewTreasure(crossed.length ? crossed[crossed.length - 1] : null);
     setNewCard(null); // hub games never unlock journey cards
     setTotalStars(nt);
+    setSessionStars(s => s + rating);
     setRewardReturn('hub');
     setScreen('reward');
   }
@@ -234,6 +331,7 @@ function App() {
   function preview(target) {
     if (target === 'game') { setActiveLevel(LEVELS[0]); setQPos(0); ratingsRef.current = []; }
     if (target === 'reward') { setEarned(3); setNewTreasure(TREASURES[1]); setRewardReturn('hub'); }
+    if (target === 'sleep') setSession(s => (s.sleepUntil > Date.now() ? s : { ...s, sleepUntil: Date.now() + COOLDOWN_MS }));
     setScreen(target);
   }
 
@@ -244,32 +342,34 @@ function App() {
   else if (screen === 'hub') body = <GamesHub totalStars={totalStars} onPick={launchGame} onRandom={() => launchRandom('hub')} musicOn={musicOn} onToggleMusic={toggleMusic} />;
   else if (screen === 'chapters') body = <ChapterSelect chapters={CHAPTERS} currentId={currentId} levelStars={levelStars} totalStars={totalStars} onPick={pickChapter} onBack={() => setScreen('hub')} musicOn={musicOn} onToggleMusic={toggleMusic} />;
   else if (screen === 'cards') body = <CardGallery chapters={CHAPTERS} currentId={currentId} onBack={() => setScreen('hub')} musicOn={musicOn} onToggleMusic={toggleMusic} />;
-  else if (screen === 'map') body = <FairyMap chapter={activeChapter} currentId={currentId} levelStars={levelStars} totalStars={totalStars} onPlay={startLevel} onStartOver={startOver} onRandom={() => launchRandom('map')} onBack={() => setScreen('chapters')} musicOn={musicOn} onToggleMusic={toggleMusic} />;
-  else if (screen === 'random') body = <RandomWords words={unlockedWords} onExit={() => setScreen(randomReturn)} musicOn={musicOn} onToggleMusic={toggleMusic} />;
+  else if (screen === 'map') body = <FairyMap chapter={activeChapter} currentId={currentId} levelStars={levelStars} totalStars={totalStars} onPlay={startLevel} onStartOver={startOver} onRandom={() => launchRandom('map')} onBack={() => setScreen('chapters')} onShowCards={openCards} musicOn={musicOn} onToggleMusic={toggleMusic} />;
+  else if (screen === 'random') body = <RandomWords words={unlockedWords} onExit={() => setScreen(randomReturn)} onShowCards={openCards} restPending={restPending} onWordSeen={() => setSessionWords(w => w + 1)} musicOn={musicOn} onToggleMusic={toggleMusic} />;
   else if (screen === 'game') body = (
     <SyllableGame
       key={activeLevel.id + '-' + qPos + '-' + mode}
       wordKey={queue[qPos]} mode={mode} scale={scale} accent={accent}
       progress={{ index: qPos, total: queue.length }}
-      onWin={onWordWin} onExit={() => setScreen('map')}
+      onWin={onWordWin} onExit={() => setScreen('map')} onShowCards={openCards}
       musicOn={musicOn} onToggleMusic={toggleMusic} />
   );
   else if (screen === 'readfind') body = (
     <ReadFindGame key={'rf' + gameNonce} words={unlockedWords} accent={GAME_ACCENT.readfind}
       onDone={onGameRoundDone} onExit={() => setScreen('hub')} onWordDone={handleWordDone}
-      musicOn={musicOn} onToggleMusic={toggleMusic} />
+      onShowCards={openCards} musicOn={musicOn} onToggleMusic={toggleMusic} />
   );
   else if (screen === 'firstletter') body = (
     <FirstLetterGame key={'fl' + gameNonce} words={unlockedWords} accent={GAME_ACCENT.firstletter}
       onDone={onGameRoundDone} onExit={() => setScreen('hub')} onWordDone={handleWordDone}
-      musicOn={musicOn} onToggleMusic={toggleMusic} />
+      onShowCards={openCards} musicOn={musicOn} onToggleMusic={toggleMusic} />
   );
   else if (screen === 'blend') body = (
     <BlendGame key={'bl' + gameNonce} words={unlockedWords} accent={GAME_ACCENT.blend}
       onDone={onGameRoundDone} onExit={() => setScreen('hub')} onWordDone={handleWordDone}
-      musicOn={musicOn} onToggleMusic={toggleMusic} />
+      onShowCards={openCards} musicOn={musicOn} onToggleMusic={toggleMusic} />
   );
   else if (screen === 'reward') body = <RewardScreen starsEarned={earned} totalStars={totalStars} newTreasure={newTreasure} newCard={newCard} onContinue={onRewardContinue} />;
+  else if (screen === 'goodnight') body = <GoodnightScreen sessionWords={sessionWords} sessionStars={sessionStars} onGoodnight={onGoodnight} />;
+  else if (screen === 'sleep') body = <SleepScreen sleepUntil={session.sleepUntil} cooldownMs={COOLDOWN_MS} onWake={onWake} onShowCards={openCards} />;
 
   const cssVars = {
     '--bg1': pal.bg1, '--bg2': pal.bg2, '--surface': pal.surface, '--surface2': pal.surface2,
@@ -289,6 +389,8 @@ function App() {
         transform: `scale(${scale})`, transformOrigin: 'center',
       }}>
         <div style={{ position: 'absolute', inset: 0 }}>{body}</div>
+        {cardsOpen && <CardPeek chapters={CHAPTERS} currentId={currentId} onClose={() => setCardsOpen(false)} />}
+        {tiredToast && <TiredToast />}
         {milestone && <MilestonePopup n={milestone.n} src={milestone.src} exiting={milestone.exiting} />}
       </div>
 
@@ -303,6 +405,16 @@ function App() {
           options={['Saulriets', 'Konfekte', 'Lavanda']}
           onChange={(v) => setTweak('theme', v)} />
 
+        <TweakSection label="Atpūtas taimeris" />
+        <TweakRadio label="Spēles laiks" value={t.playMinutes}
+          options={['10 min', '15 min', '20 min']}
+          onChange={(v) => setTweak('playMinutes', v)} />
+        <TweakRadio label="Atpūtas laiks" value={t.restMinutes}
+          options={['15 min', '30 min', '45 min', '60 min']}
+          onChange={(v) => setTweak('restMinutes', v)} />
+        <TweakButton label="Tests: feja žāvājas" onClick={() => setSession(s => ({ ...s, playedMs: Math.max(s.playedMs, WARN_MS) }))} />
+        <TweakButton label="Tests: fejai miegs" onClick={() => setSession(s => ({ ...s, playedMs: Math.max(s.playedMs, PLAY_LIMIT_MS) }))} />
+
         <TweakSection label="Priekšskatīt ekrānu" />
         <TweakButton label="Sākums" onClick={() => preview('welcome')} />
         <TweakButton label="Spēles (izvēlne)" onClick={() => preview('hub')} />
@@ -313,6 +425,8 @@ function App() {
         <TweakButton label="Skaņas" onClick={() => { setGameNonce(n => n + 1); preview('blend'); }} />
         <TweakButton label="Balva" onClick={() => preview('reward')} />
         <TweakButton label="Sērijas balva" onClick={() => { streakRef.current = STREAK_STEP - 1; handleWordDone(true); }} />
+        <TweakButton label="Labunakts ekrāns" onClick={() => preview('goodnight')} />
+        <TweakButton label="Miega ekrāns" onClick={() => preview('sleep')} />
       </TweaksPanel>
     </div>
   );
