@@ -4,7 +4,7 @@ const { Welcome, GamesHub, ChapterSelect, CardGallery, FairyMap, RewardScreen, R
 const { SyllableGame, ReadFindGame, FirstLetterGame, BlendGame } = window;
 
 // number of milestone character images in images/milestones/ (01.png … NN.png)
-const MILESTONE_IMAGES = 10;
+const MILESTONE_IMAGES = 16;
 const STREAK_STEP = 10; // pop a celebration every N words in a row
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{

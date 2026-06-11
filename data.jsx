@@ -268,12 +268,12 @@ const LEVELS = LEVEL_WORDS.map((word, i) => ({
 // single source of truth. Each chapter awards one collectible card.
 // ─────────────────────────────────────────────────────────────
 const CHAPTER_SIZE = 10;
-const MILESTONE_CARD_IMAGES = 10; // images/milestones/01..10.png exist today
+const MILESTONE_CARD_IMAGES = 16; // images/milestones/01..16.png exist today
 const CHAPTERS = [];
 for (let i = 0; i < LEVELS.length; i += CHAPTER_SIZE) {
   const levels = LEVELS.slice(i, i + CHAPTER_SIZE);
   const id = CHAPTERS.length + 1;                          // 1..N
-  const img = ((id - 1) % MILESTONE_CARD_IMAGES) + 1;      // cards beyond 10 reuse art
+  const img = ((id - 1) % MILESTONE_CARD_IMAGES) + 1;      // cards beyond available art reuse from the start
   CHAPTERS.push({
     id,
     levels,

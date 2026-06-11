@@ -6,9 +6,10 @@
 // Reuses window globals: WORDS, HUES, BLEND_WORDS, shuffle, pickWordDistractors,
 // pickLetterDistractors, SparkleField, playWord, playSound, playSfx.
 const { useState: useStateP, useEffect: useEffectP, useRef: useRefP } = React;
+const SharedGameFrame = window.GameFrame;
+const SharedWordPictureCard = window.WordPictureCard;
 
 const ROUND_SIZE = 6;
-const starsForMistakes = (m) => (m === 0 ? 3 : m === 1 ? 2 : 1);
 
 // build a shuffled round of up to `size` words. Starts from `pool` (the words
 // the child has unlocked) and, if that's shorter than `size`, pads with the
@@ -23,45 +24,6 @@ function buildRound(pool, size, fallback) {
   }
   const list = shuffle(base).slice(0, Math.min(size, base.length));
   return list.length ? list : [fb[0] || Object.keys(WORDS)[0]];
-}
-
-// celebratory star burst, same as SyllableGame's win overlay
-function WinBurst() {
-  return (
-    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 30 }}>
-      {Array.from({ length: 10 }).map((_, i) => (
-        <div key={i} style={{
-          position: 'absolute', fontSize: 26,
-          animation: `star-pop .6s ease ${i * 0.04}s both`,
-          transform: `rotate(${i * 36}deg) translateY(-90px)`,
-        }}>{['⭐', '✨', '💖'][i % 3]}</div>
-      ))}
-    </div>
-  );
-}
-
-// shared shell: top bar (back + progress dots + music toggle), sparkles, win burst
-function GameFrame({ onExit, index, total, won, musicOn, onToggleMusic, children }) {
-  return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <SparkleField count={7} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '64px 20px 0' }}>
-        <button onClick={onExit} className="kid-btn ghost" style={{ width: 46, height: 46, fontSize: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>‹</button>
-        <div style={{ flex: 1, display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'center' }}>
-          {Array.from({ length: total }).map((_, i) => (
-            <div key={i} style={{
-              width: i === index ? 30 : 12, height: 12, borderRadius: 999,
-              background: i < index ? GOLD : i === index ? 'var(--primary)' : 'rgba(150,110,150,.28)',
-              transition: 'all .3s',
-            }} />
-          ))}
-        </div>
-        {onToggleMusic ? <MusicButton on={musicOn} onToggle={onToggleMusic} /> : <div style={{ width: 46 }} />}
-      </div>
-      {children}
-      {won && <WinBurst />}
-    </div>
-  );
 }
 
 // a single picture-choice tile
@@ -106,6 +68,7 @@ function useRound(pool, onDone, fallback) {
 // ─────────────────────────────────────────────────────────────
 function ReadFindGame({ words, accent, onDone, onExit, onWordDone, musicOn, onToggleMusic }) {
   const { word, idx, total, advance } = useRound(words, onDone);
+  const { setSafeTimeout, clearTimers } = useTimeoutBag();
 
   const opts = useRefP(null);
   if (!opts.current || opts.current._w !== word) {
@@ -117,7 +80,7 @@ function ReadFindGame({ words, accent, onDone, onExit, onWordDone, musicOn, onTo
   const [won, setWon] = useStateP(false);
   const [mistakes, setMistakes] = useStateP(0);
   const [wrongKey, setWrongKey] = useStateP(null);
-  useEffectP(() => { setWon(false); setMistakes(0); setWrongKey(null); }, [word]);
+  useEffectP(() => { clearTimers(); setWon(false); setMistakes(0); setWrongKey(null); }, [word]);
 
   function pick(key) {
     if (won) return;
@@ -127,16 +90,16 @@ function ReadFindGame({ words, accent, onDone, onExit, onWordDone, musicOn, onTo
       playWord(word);
       const m = mistakes;
       if (onWordDone) onWordDone(m === 0);
-      setTimeout(() => advance(starsForMistakes(m)), 1150);
+      setSafeTimeout(() => advance(starsForMistakes(m)), 1150);
     } else {
       setMistakes(m => m + 1);
       setWrongKey(key);
-      setTimeout(() => setWrongKey(null), 600);
+      setSafeTimeout(() => setWrongKey(null), 600);
     }
   }
 
   return (
-    <GameFrame onExit={onExit} index={idx} total={total} won={won} musicOn={musicOn} onToggleMusic={onToggleMusic}>
+    <SharedGameFrame onExit={onExit} index={idx} total={total} won={won} musicOn={musicOn} onToggleMusic={onToggleMusic}>
       <div style={{ textAlign: 'center', padding: '18px 28px 0' }}>
         <span className="display" style={{ fontSize: 18, fontWeight: 500, color: 'var(--ink)' }}>
           {won ? 'Lieliski! 🎉' : 'Izlasi vārdu un atrodi attēlu!'}
@@ -162,7 +125,7 @@ function ReadFindGame({ words, accent, onDone, onExit, onWordDone, musicOn, onTo
             wrong={wrongKey === k} dim={won && k !== word} onPick={() => pick(k)} />
         ))}
       </div>
-    </GameFrame>
+    </SharedGameFrame>
   );
 }
 
@@ -173,6 +136,7 @@ function FirstLetterGame({ words, accent, onDone, onExit, onWordDone, musicOn, o
   const { word, idx, total, advance } = useRound(words, onDone);
   const data = WORDS[word] || {};
   const first = Array.from(word)[0];
+  const { setSafeTimeout, clearTimers } = useTimeoutBag();
 
   const opts = useRefP(null);
   if (!opts.current || opts.current._w !== word) {
@@ -184,42 +148,31 @@ function FirstLetterGame({ words, accent, onDone, onExit, onWordDone, musicOn, o
   const [won, setWon] = useStateP(false);
   const [mistakes, setMistakes] = useStateP(0);
   const [wrong, setWrong] = useStateP(null);
-  useEffectP(() => { setWon(false); setMistakes(0); setWrong(null); playWord(word); }, [word]);
+  useEffectP(() => { clearTimers(); setWon(false); setMistakes(0); setWrong(null); playWord(word); }, [word]);
 
   function pick(letter) {
     if (won) return;
     if (letter === first) {
       setWon(true);
       playSfx('win');
-      setTimeout(() => playWord(word), 350); // full word only — no letter replay
+      setSafeTimeout(() => playWord(word), 350); // full word only — no letter replay
       const m = mistakes;
       if (onWordDone) onWordDone(m === 0);
       // Hold ~3s before advancing: the next word is announced the moment it
       // mounts (the [word] effect above), so a short gap here made the win
       // chime + spoken word overlap with the next word's name. 3s clears them.
-      setTimeout(() => advance(starsForMistakes(m)), 3000);
+      setSafeTimeout(() => advance(starsForMistakes(m)), 3000);
     } else {
       setMistakes(m => m + 1);
       setWrong(letter);
-      setTimeout(() => setWrong(null), 600);
+      setSafeTimeout(() => setWrong(null), 600);
     }
   }
 
   return (
-    <GameFrame onExit={onExit} index={idx} total={total} won={won} musicOn={musicOn} onToggleMusic={onToggleMusic}>
+    <SharedGameFrame onExit={onExit} index={idx} total={total} won={won} musicOn={musicOn} onToggleMusic={onToggleMusic}>
       {/* picture card (tap to hear) */}
-      <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 18 }}>
-        <div onClick={() => playWord(word)} style={{
-          width: 156, height: 156, borderRadius: 40, background: 'var(--surface)',
-          boxShadow: '0 14px 30px rgba(140,90,130,.18)', display: 'flex',
-          alignItems: 'center', justifyContent: 'center', position: 'relative', cursor: 'pointer',
-          animation: won ? 'bob .6s ease-in-out infinite' : 'floaty-slow 4s ease-in-out infinite',
-        }}>
-          <div style={{ position: 'absolute', inset: 14, borderRadius: 30, background: `radial-gradient(circle at 50% 40%, ${accent[0]} 0%, transparent 72%)`, opacity: .5 }} />
-          <div style={{ fontSize: 86, lineHeight: 1, position: 'relative', filter: 'drop-shadow(0 4px 6px rgba(140,90,130,.25))' }}>{data.pic}</div>
-          <div style={{ position: 'absolute', bottom: 10, right: 10, width: 36, height: 36, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, boxShadow: '0 3px 8px rgba(140,90,130,.3)' }}>🔊</div>
-        </div>
-      </div>
+      <SharedWordPictureCard wordKey={word} data={data} accent={accent} won={won} paddingTop={18} />
 
       <div style={{ textAlign: 'center', padding: '16px 28px 0' }}>
         <span className="display" style={{ fontSize: 19, fontWeight: 500, color: 'var(--ink)' }}>
@@ -243,7 +196,7 @@ function FirstLetterGame({ words, accent, onDone, onExit, onWordDone, musicOn, o
           </div>
         ))}
       </div>
-    </GameFrame>
+    </SharedGameFrame>
   );
 }
 
@@ -260,6 +213,7 @@ function BlendGame({ words, accent, onDone, onExit, onWordDone, musicOn, onToggl
   }
   const { word, idx, total, advance } = useRound(pool.current, onDone, Object.keys(BLEND_WORDS));
   const sounds = BLEND_WORDS[word] || Array.from(word);
+  const { setSafeTimeout, clearTimers } = useTimeoutBag();
 
   const opts = useRefP(null);
   if (!opts.current || opts.current._w !== word) {
@@ -275,13 +229,13 @@ function BlendGame({ words, accent, onDone, onExit, onWordDone, musicOn, onToggl
 
   // auto-play the sound sequence whenever the word changes
   useEffectP(() => {
+    clearTimers();
     setWon(false); setMistakes(0); setWrongKey(null); setLit(-1);
-    const timers = [];
     sounds.forEach((s, i) => {
-      timers.push(setTimeout(() => { setLit(i); playSound(s); }, 350 + i * 700));
+      setSafeTimeout(() => { setLit(i); playSound(s); }, 350 + i * 700);
     });
-    timers.push(setTimeout(() => setLit(-1), 350 + sounds.length * 700));
-    return () => timers.forEach(clearTimeout);
+    setSafeTimeout(() => setLit(-1), 350 + sounds.length * 700);
+    return clearTimers;
   }, [word]);
 
   function pick(key) {
@@ -292,22 +246,22 @@ function BlendGame({ words, accent, onDone, onExit, onWordDone, musicOn, onToggl
       playWord(word);
       const m = mistakes;
       if (onWordDone) onWordDone(m === 0);
-      setTimeout(() => advance(starsForMistakes(m)), 1150);
+      setSafeTimeout(() => advance(starsForMistakes(m)), 1150);
     } else {
       setMistakes(m => m + 1);
       setWrongKey(key);
-      setTimeout(() => setWrongKey(null), 600);
+      setSafeTimeout(() => setWrongKey(null), 600);
     }
   }
 
   function replayAll() {
     if (won) return;
-    sounds.forEach((s, i) => setTimeout(() => { setLit(i); playSound(s); }, i * 700));
-    setTimeout(() => setLit(-1), sounds.length * 700);
+    sounds.forEach((s, i) => setSafeTimeout(() => { setLit(i); playSound(s); }, i * 700));
+    setSafeTimeout(() => setLit(-1), sounds.length * 700);
   }
 
   return (
-    <GameFrame onExit={onExit} index={idx} total={total} won={won} musicOn={musicOn} onToggleMusic={onToggleMusic}>
+    <SharedGameFrame onExit={onExit} index={idx} total={total} won={won} musicOn={musicOn} onToggleMusic={onToggleMusic}>
       <div style={{ textAlign: 'center', padding: '18px 28px 0' }}>
         <span className="display" style={{ fontSize: 19, fontWeight: 500, color: 'var(--ink)' }}>
           {won ? 'Lieliski! 🎉' : 'Klausies skaņas — kāds vārds sanāk?'}
@@ -317,7 +271,7 @@ function BlendGame({ words, accent, onDone, onExit, onWordDone, musicOn, onToggl
       {/* sound buttons (tap any to replay that sound) */}
       <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', padding: '22px 22px 0' }}>
         {sounds.map((s, i) => (
-          <div key={i} className="tile" onClick={() => { setLit(i); playSound(s); setTimeout(() => setLit(-1), 450); }} style={{
+          <div key={i} className="tile" onClick={() => { setLit(i); playSound(s); setSafeTimeout(() => setLit(-1), 450); }} style={{
             minWidth: 60, height: 72, padding: '0 6px', borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: lit === i ? accent[0] : 'var(--surface)',
             boxShadow: lit === i ? `0 6px 0 ${accent[1]}` : '0 6px 0 rgba(150,110,150,.22), 0 9px 16px rgba(140,90,130,.14)',
@@ -345,8 +299,8 @@ function BlendGame({ words, accent, onDone, onExit, onWordDone, musicOn, onToggl
           </div>
         ))}
       </div>
-    </GameFrame>
+    </SharedGameFrame>
   );
 }
 
-Object.assign(window, { ReadFindGame, FirstLetterGame, BlendGame, GameFrame });
+Object.assign(window, { ReadFindGame, FirstLetterGame, BlendGame, GameFrame: window.GameFrame });

@@ -56,11 +56,99 @@ function Face({ children, big, faded, color, ghost }) {
   );
 }
 
+function starsForMistakes(m) {
+  return m === 0 ? 3 : m === 1 ? 2 : 1;
+}
+
+function useTimeoutBag() {
+  const timers = React.useRef([]);
+  const clearTimers = React.useCallback(() => {
+    timers.current.forEach(clearTimeout);
+    timers.current = [];
+  }, []);
+  const setSafeTimeout = React.useCallback((fn, delay) => {
+    const id = setTimeout(() => {
+      timers.current = timers.current.filter(t => t !== id);
+      fn();
+    }, delay);
+    timers.current.push(id);
+    return id;
+  }, []);
+  React.useEffect(() => clearTimers, [clearTimers]);
+  return { setSafeTimeout, clearTimers };
+}
+
+function WinBurst() {
+  return (
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 30 }}>
+      {Array.from({ length: 10 }).map((_, i) => (
+        <div key={i} style={{
+          position: 'absolute', fontSize: 26,
+          animation: `star-pop .6s ease ${i * 0.04}s both`,
+          transform: `rotate(${i * 36}deg) translateY(-90px)`,
+        }}>{['⭐', '✨', '💖'][i % 3]}</div>
+      ))}
+    </div>
+  );
+}
+
+function ProgressDots({ index, total }) {
+  return (
+    <div style={{ flex: 1, display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'center' }}>
+      {Array.from({ length: total }).map((_, i) => (
+        <div key={i} style={{
+          width: i === index ? 30 : 12, height: 12, borderRadius: 999,
+          background: i < index ? GOLD : i === index ? 'var(--primary)' : 'rgba(150,110,150,.28)',
+          transition: 'all .3s',
+        }} />
+      ))}
+    </div>
+  );
+}
+
+// Shared shell: top bar, sparkles, and win overlay for lesson and hub games.
+function GameFrame({ onExit, index, total, won, musicOn, onToggleMusic, children }) {
+  return (
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <SparkleField count={7} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '64px 20px 0' }}>
+        <button onClick={onExit} className="kid-btn ghost" style={{ width: 46, height: 46, fontSize: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>‹</button>
+        <ProgressDots index={index} total={total} />
+        {onToggleMusic ? <MusicButton on={musicOn} onToggle={onToggleMusic} /> : <div style={{ width: 46 }} />}
+      </div>
+      {children}
+      {won && <WinBurst />}
+    </div>
+  );
+}
+
+function WordPictureCard({ wordKey, data, accent, won, paddingTop = 14 }) {
+  const wordData = data || WORDS[wordKey] || {};
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', paddingTop }}>
+      <div onClick={() => playWord(wordKey)} style={{
+        width: 156, height: 156, borderRadius: 40, background: 'var(--surface)',
+        boxShadow: '0 14px 30px rgba(140,90,130,.18)', display: 'flex',
+        alignItems: 'center', justifyContent: 'center', position: 'relative', cursor: 'pointer',
+        animation: won ? 'bob .6s ease-in-out infinite' : 'floaty-slow 4s ease-in-out infinite',
+      }}>
+        <div style={{
+          position: 'absolute', inset: 14, borderRadius: 30,
+          background: `radial-gradient(circle at 50% 40%, ${accent[0]} 0%, transparent 72%)`, opacity: .5,
+        }} />
+        <div style={{ fontSize: 86, lineHeight: 1, position: 'relative', filter: 'drop-shadow(0 4px 6px rgba(140,90,130,.25))' }}>{wordData.pic}</div>
+        <div style={{ position: 'absolute', bottom: 10, right: 10, width: 36, height: 36, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, boxShadow: '0 3px 8px rgba(140,90,130,.3)' }}>🔊</div>
+      </div>
+    </div>
+  );
+}
+
 function SyllableGame({ wordKey, mode, scale, accent, progress, onWin, onExit, onWordDone, musicOn, onToggleMusic }) {
   const data = WORDS[wordKey];
   const answer = data.syll;
   const n = answer.length;
   const slotFs = n >= 3 ? 28 : 40;
+  const { setSafeTimeout, clearTimers } = useTimeoutBag();
 
   // ── tiles for tap / drag ──
   const tiles = useRefG(null);
@@ -93,18 +181,17 @@ function SyllableGame({ wordKey, mode, scale, accent, progress, onWin, onExit, o
 
   // reset when word changes
   useEffectG(() => {
+    clearTimers();
     setSlots(Array(n).fill(null)); setResolving(false); setWon(false);
     setMistakes(0); setFeedback(null); setShakeWrong(false); setDrag(null); setWrongOpt(null);
   }, [wordKey]);
-
-  const starsFor = (m) => (m === 0 ? 3 : m === 1 ? 2 : 1);
 
   function winNow() {
     setFeedback('right'); setWon(true);
     playSfx('win');     // celebration sound on every correct answer
     playWord(wordKey);  // then hear the word
     if (onWordDone) onWordDone(mistakes === 0); // streak: was this word first-try?
-    setTimeout(() => onWin(starsFor(mistakes)), 1150);
+    setSafeTimeout(() => onWin(starsForMistakes(mistakes)), 1150);
   }
 
   // ── tap / drag placement ──
@@ -127,11 +214,11 @@ function SyllableGame({ wordKey, mode, scale, accent, progress, onWin, onExit, o
     if (slots.every(s => s !== null)) {
       setResolving(true);
       const ok = slots.every((id, i) => tileSyll(id) === answer[i]);
-      const t = setTimeout(() => {
+      const t = setSafeTimeout(() => {
         if (ok) { winNow(); }
         else {
           setMistakes(m => m + 1); setShakeWrong(true); setFeedback('wrong');
-          setTimeout(() => { setSlots(Array(n).fill(null)); setShakeWrong(false); setResolving(false); setFeedback(null); }, 750);
+          setSafeTimeout(() => { setSlots(Array(n).fill(null)); setShakeWrong(false); setResolving(false); setFeedback(null); }, 750);
         }
       }, 420);
       return () => clearTimeout(t);
@@ -164,8 +251,8 @@ function SyllableGame({ wordKey, mode, scale, accent, progress, onWin, onExit, o
   // choose-mode pick
   function pickOption(syll) {
     if (won) return;
-    if (syll === answer[blankIdx]) { setSlots(answer.slice()); setTimeout(winNow, 120); }
-    else { setMistakes(m => m + 1); setWrongOpt(syll); setFeedback('wrong'); setTimeout(() => { setWrongOpt(null); setFeedback(null); }, 700); }
+    if (syll === answer[blankIdx]) { setSlots(answer.slice()); setSafeTimeout(winNow, 120); }
+    else { setMistakes(m => m + 1); setWrongOpt(syll); setFeedback('wrong'); setSafeTimeout(() => { setWrongOpt(null); setFeedback(null); }, 700); }
   }
 
   // ── prompt text ──
@@ -238,44 +325,12 @@ function SyllableGame({ wordKey, mode, scale, accent, progress, onWin, onExit, o
   };
 
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <SparkleField count={7} />
-
-      {/* top bar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '64px 20px 0' }}>
-        <button onClick={onExit} className="kid-btn ghost" style={{ width: 46, height: 46, fontSize: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>‹</button>
-        <div style={{ flex: 1, display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'center' }}>
-          {Array.from({ length: progress.total }).map((_, i) => (
-            <div key={i} style={{
-              width: i === progress.index ? 30 : 12, height: 12, borderRadius: 999,
-              background: i < progress.index ? GOLD : i === progress.index ? 'var(--primary)' : 'rgba(150,110,150,.28)',
-              transition: 'all .3s',
-            }} />
-          ))}
-        </div>
-        {onToggleMusic ? <MusicButton on={musicOn} onToggle={onToggleMusic} /> : <div style={{ width: 46 }} />}
-      </div>
-
-      {/* picture card */}
-      <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 14 }}>
-        <div onClick={() => playWord(wordKey)} style={{
-          width: 156, height: 156, borderRadius: 40, background: 'var(--surface)',
-          boxShadow: '0 14px 30px rgba(140,90,130,.18)', display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center', position: 'relative', cursor: 'pointer',
-          animation: won ? 'bob .6s ease-in-out infinite' : 'floaty-slow 4s ease-in-out infinite',
-        }}>
-          <div style={{
-            position: 'absolute', inset: 14, borderRadius: 30,
-            background: `radial-gradient(circle at 50% 40%, ${accent[0]} 0%, transparent 72%)`, opacity: .5,
-          }} />
-          <div style={{ fontSize: 86, lineHeight: 1, position: 'relative', filter: 'drop-shadow(0 4px 6px rgba(140,90,130,.25))' }}>{data.pic}</div>
-          <div style={{ position: 'absolute', bottom: 10, right: 10, width: 36, height: 36, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, boxShadow: '0 3px 8px rgba(140,90,130,.3)' }}>🔊</div>
-        </div>
-      </div>
+    <GameFrame onExit={onExit} index={progress.index} total={progress.total} won={won} musicOn={musicOn} onToggleMusic={onToggleMusic}>
+      <WordPictureCard wordKey={wordKey} data={data} accent={accent} won={won} paddingTop={14} />
 
       {/* prompt */}
       <div style={{ textAlign: 'center', padding: '16px 28px 0' }}>
-        <span className="display" style={{ fontSize: 19, fontWeight: 500, color: feedback === 'right' ? GOLD_DARK : 'var(--inkSoft, var(--ink))' , color: feedback === 'right' ? GOLD_DARK : 'var(--ink)' }}>{promptText}</span>
+        <span className="display" style={{ fontSize: 19, fontWeight: 500, color: feedback === 'right' ? GOLD_DARK : 'var(--ink)' }}>{promptText}</span>
       </div>
 
       {/* slots */}
@@ -329,20 +384,8 @@ function SyllableGame({ wordKey, mode, scale, accent, progress, onWin, onExit, o
         </div>
       )}
 
-      {/* win burst */}
-      {won && (
-        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 30 }}>
-          {Array.from({ length: 10 }).map((_, i) => (
-            <div key={i} style={{
-              position: 'absolute', fontSize: 26,
-              animation: `star-pop .6s ease ${i * 0.04}s both`,
-              transform: `rotate(${i * 36}deg) translateY(-90px)`,
-            }}>{['⭐', '✨', '💖'][i % 3]}</div>
-          ))}
-        </div>
-      )}
-    </div>
+    </GameFrame>
   );
 }
 
-Object.assign(window, { SyllableGame, playWord, playSound, playSfx });
+Object.assign(window, { SyllableGame, playWord, playSound, playSfx, starsForMistakes, useTimeoutBag, WinBurst, GameFrame, WordPictureCard });
