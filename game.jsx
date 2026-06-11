@@ -56,7 +56,7 @@ function Face({ children, big, faded, color, ghost }) {
   );
 }
 
-function SyllableGame({ wordKey, mode, scale, accent, progress, onWin, onExit, onWordDone }) {
+function SyllableGame({ wordKey, mode, scale, accent, progress, onWin, onExit, onWordDone, musicOn, onToggleMusic }) {
   const data = WORDS[wordKey];
   const answer = data.syll;
   const n = answer.length;
@@ -253,7 +253,7 @@ function SyllableGame({ wordKey, mode, scale, accent, progress, onWin, onExit, o
             }} />
           ))}
         </div>
-        <div style={{ width: 46 }} />
+        {onToggleMusic ? <MusicButton on={musicOn} onToggle={onToggleMusic} /> : <div style={{ width: 46 }} />}
       </div>
 
       {/* picture card */}

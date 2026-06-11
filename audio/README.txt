@@ -19,7 +19,7 @@ background5min.mp3 — looping background music for the whole session.
 win.mp3            — short celebration sound, played on every correct answer
                      (just before the word is spoken).
 
-Required word files (109)
+Required word files (106)
 ------------------------
 roze.mp3        — ROZE (rose)
 saule.mp3       — SAULE (sun)
@@ -72,16 +72,13 @@ zimulis.mp3     — ZĪMULIS (pencil)
 davana.mp3      — DĀVANA (gift)
 vienradzis.mp3  — VIENRADZIS (unicorn)
 
-New words — 2 syllables (38)
+New words — 2 syllables (33)
 ----------------------------
 puce.mp3        — PŪCE (owl)
 musa.mp3        — MUŠA (fly)
 roka.mp3        — ROKA (hand)
 kaja.mp3        — KĀJA (leg)
 mute.mp3        — MUTE (mouth)
-acis.mp3        — ACIS (eyes)
-ausis.mp3       — AUSIS (ears)
-deguns.mp3      — DEGUNS (nose)
 zobi.mp3        — ZOBI (teeth)
 lietus.mp3      — LIETUS (rain)
 jura.mp3        — JŪRA (sea)
@@ -108,12 +105,10 @@ jaka.mp3        — JAKA (jacket)
 bikses.mp3      — BIKSES (pants)
 kleita.mp3      — KLEITA (dress)
 skola.mp3       — SKOLA (school)
-burti.mp3       — BURTI (letters)
-krasa.mp3       — KRĀSA (colour)
 vilciens.mp3    — VILCIENS (train)
 tramvajs.mp3    — TRAMVAJS (tram)
 
-New words — 3 syllables (21)
+New words — 3 syllables (23)
 ----------------------------
 masina.mp3      — MAŠĪNA (car)
 karote.mp3      — KAROTE (spoon)
@@ -136,3 +131,5 @@ vavere.mp3      — VĀVERE (squirrel)
 zirafe.mp3      — ŽIRAFE (giraffe)
 kamielis.mp3    — KAMIELIS (camel)
 kirzaka.mp3     — ĶIRZAKA (lizard)
+cepumi.mp3      — CEPUMI (cookies)
+daksina.mp3     — DAKŠIŅA (fork)

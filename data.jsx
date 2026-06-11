@@ -87,9 +87,6 @@ const WORDS = {
   'ROKA':       { syll: ['RO', 'KA'],          pic: '✋', en: 'hand',      slug: 'roka' },
   'KĀJA':       { syll: ['KĀ', 'JA'],          pic: '🦵', en: 'leg',       slug: 'kaja' },
   'MUTE':       { syll: ['MU', 'TE'],          pic: '👄', en: 'mouth',     slug: 'mute' },
-  'ACIS':       { syll: ['A', 'CIS'],          pic: '👀', en: 'eyes',      slug: 'acis' },
-  'AUSIS':      { syll: ['AU', 'SIS'],         pic: '👂', en: 'ears',      slug: 'ausis' },
-  'DEGUNS':     { syll: ['DE', 'GUNS'],        pic: '👃', en: 'nose',      slug: 'deguns' },
   'ZOBI':       { syll: ['ZO', 'BI'],          pic: '🦷', en: 'teeth',     slug: 'zobi' },
   // ── 2-syllable (nature) ──
   'LIETUS':     { syll: ['LIE', 'TUS'],        pic: '🌧️', en: 'rain',      slug: 'lietus' },
@@ -121,8 +118,6 @@ const WORDS = {
   'KLEITA':     { syll: ['KLEI', 'TA'],        pic: '👗', en: 'dress',     slug: 'kleita' },
   // ── 2-syllable (school & things) ──
   'SKOLA':      { syll: ['SKO', 'LA'],         pic: '🏫', en: 'school',    slug: 'skola' },
-  'BURTI':      { syll: ['BUR', 'TI'],         pic: '🔤', en: 'letters',   slug: 'burti' },
-  'KRĀSA':      { syll: ['KRĀ', 'SA'],         pic: '🎨', en: 'colour',    slug: 'krasa' },
   'VILCIENS':   { syll: ['VIL', 'CIENS'],      pic: '🚂', en: 'train',     slug: 'vilciens' },
   'TRAMVAJS':   { syll: ['TRAM', 'VAJS'],      pic: '🚊', en: 'tram',      slug: 'tramvajs' },
   // ── 3-syllable ──
@@ -164,6 +159,9 @@ const WORDS = {
   'ŽIRAFE':     { syll: ['ŽI', 'RA', 'FE'],    pic: '🦒', en: 'giraffe',   slug: 'zirafe' },
   'KAMIELIS':   { syll: ['KA', 'MIE', 'LIS'],  pic: '🐪', en: 'camel',     slug: 'kamielis' },
   'ĶIRZAKA':    { syll: ['ĶIR', 'ZA', 'KA'],   pic: '🦎', en: 'lizard',    slug: 'kirzaka' },
+  // ── newly added (appended at end to keep existing level IDs / saved progress) ──
+  'CEPUMI':     { syll: ['CE', 'PU', 'MI'],    pic: '🍪', en: 'cookies',   slug: 'cepumi' },
+  'DAKŠIŅA':    { syll: ['DAK', 'ŠI', 'ŅA'],   pic: '🍴', en: 'fork',      slug: 'daksina' },
 };
 
 // distractor syllable pool for tiles / choices
@@ -230,7 +228,6 @@ const BLEND_WORDS = {
   'GULTA': ['G','U','L','T','A'],
   'JAKA':  ['J','A','K','A'],
   'SKOLA': ['S','K','O','L','A'],
-  'KRĀSA': ['K','R','Ā','S','A'],
   'PŪCE':  ['P','Ū','C','E'],
   'MUŠA':  ['M','U','Š','A'],
   'ZEĶE':  ['Z','E','Ķ','E'],

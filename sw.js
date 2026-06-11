@@ -5,7 +5,7 @@
 // `activate`). Strategy is cache-first: the app is fully static, so once the
 // precache below is populated the game runs instantly and 100% offline.
 
-const CACHE_NAME = 'burtu-feja-v3';
+const CACHE_NAME = 'burtu-feja-v8';
 
 // Complete, explicit list of every asset the app needs at runtime.
 // NOTE: cache.addAll() is atomic — if ANY entry 404s, the whole install
@@ -89,6 +89,16 @@ const PRECACHE = [
   'audio/zobi.mp3', 'audio/lietus.mp3', 'audio/jura.mp3', 'audio/zeme.mp3',
   'audio/kalni.mp3', 'audio/abols.mp3', 'audio/banans.mp3', 'audio/burkans.mp3',
   'audio/tomats.mp3', 'audio/skola.mp3', 'audio/tramvajs.mp3',
+  'audio/ola.mp3', 'audio/zupa.mp3', 'audio/sula.mp3', 'audio/medus.mp3',
+  'audio/soma.mp3', 'audio/kaste.mp3', 'audio/skivis.mp3', 'audio/gulta.mp3',
+  'audio/kurpe.mp3', 'audio/zeke.mp3', 'audio/cimdi.mp3', 'audio/jaka.mp3',
+  'audio/bikses.mp3', 'audio/kleita.mp3', 'audio/vilciens.mp3', 'audio/masina.mp3',
+  'audio/karote.mp3', 'audio/cepure.mp3', 'audio/avize.mp3', 'audio/rakete.mp3',
+  'audio/planeta.mp3', 'audio/telefons.mp3', 'audio/pulkstenis.mp3', 'audio/spogulis.mp3',
+  'audio/autobuss.mp3', 'audio/ragavas.mp3', 'audio/apelsins.mp3', 'audio/paprika.mp3',
+  'audio/baklazans.mp3', 'audio/brokolis.mp3', 'audio/salati.mp3', 'audio/saldejums.mp3',
+  'audio/vavere.mp3', 'audio/zirafe.mp3', 'audio/kamielis.mp3', 'audio/kirzaka.mp3',
+  'audio/kirbis.mp3', 'audio/cepumi.mp3', 'audio/daksina.mp3',
 
   // letter phoneme clips
   'audio/letters/a.mp3', 'audio/letters/aa.mp3', 'audio/letters/b.mp3',

@@ -191,7 +191,7 @@ function GamesHub({ totalStars, onPick, onRandom, musicOn, onToggleMusic }) {
 // ─────────────────────────────────────────────────────────────
 // FAIRY MAP (level select)
 // ─────────────────────────────────────────────────────────────
-function FairyMap({ currentId, levelStars, totalStars, onPlay, onStartOver, onRandom, onBack }) {
+function FairyMap({ currentId, levelStars, totalStars, onPlay, onStartOver, onRandom, onBack, musicOn, onToggleMusic }) {
   const [askReset, setAskReset] = useSt(false);
   // Keep the map parked on the current level so returning after a win lands
   // where the player left off (no scrolling down from the top each time).
@@ -224,6 +224,7 @@ function FairyMap({ currentId, levelStars, totalStars, onPlay, onStartOver, onRa
             style={{ width: 44, height: 44, fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>🎲</button>
           <button onClick={() => setAskReset(true)} className="kid-btn ghost" aria-label="Sākt no jauna" title="Sākt no jauna"
             style={{ width: 44, height: 44, fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>🔄</button>
+          {onToggleMusic && <MusicButton on={musicOn} onToggle={onToggleMusic} style={{ width: 44, height: 44, fontSize: 19 }} />}
           <StarCount value={totalStars} />
         </div>
       </div>
@@ -316,7 +317,7 @@ function FairyMap({ currentId, levelStars, totalStars, onPlay, onStartOver, onRa
 // ─────────────────────────────────────────────────────────────
 // RANDOM WORDS (free review of unlocked words)
 // ─────────────────────────────────────────────────────────────
-function RandomWords({ words, onExit }) {
+function RandomWords({ words, onExit, musicOn, onToggleMusic }) {
   const list = words && words.length ? words : Object.keys(WORDS).slice(0, 1);
   const randomWord = (avoid) => {
     if (list.length <= 1) return list[0];
@@ -343,7 +344,9 @@ function RandomWords({ words, onExit }) {
       <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '60px 18px 0' }}>
         <button onClick={onExit} className="kid-btn ghost" style={{ padding: '10px 20px', fontSize: 17, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>‹ Iziet</button>
         <div className="display" style={{ fontSize: 18, fontWeight: 600, color: 'var(--ink)' }}>Jaukti vārdi 🎲</div>
-        <div style={{ width: 92 }} />
+        <div style={{ width: 92, display: 'flex', justifyContent: 'flex-end' }}>
+          {onToggleMusic && <MusicButton on={musicOn} onToggle={onToggleMusic} />}
+        </div>
       </div>
 
       {/* center: picture + word + syllables */}

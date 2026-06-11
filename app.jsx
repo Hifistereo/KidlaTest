@@ -49,7 +49,7 @@ function App() {
   useE(() => {
     const bg = new Audio('audio/background5min.mp3');
     bg.loop = true;
-    bg.volume = 0.12;
+    bg.volume = 0.03; // quiet under the spoken words (was 0.12)
     bgRef.current = bg;
     const start = () => {
       window.removeEventListener('pointerdown', start);
@@ -230,26 +230,30 @@ function App() {
   let body = null;
   if (screen === 'welcome') body = <Welcome onStart={() => setScreen('hub')} musicOn={musicOn} onToggleMusic={toggleMusic} />;
   else if (screen === 'hub') body = <GamesHub totalStars={totalStars} onPick={launchGame} onRandom={() => launchRandom('hub')} musicOn={musicOn} onToggleMusic={toggleMusic} />;
-  else if (screen === 'map') body = <FairyMap currentId={currentId} levelStars={levelStars} totalStars={totalStars} onPlay={startLevel} onStartOver={startOver} onRandom={() => launchRandom('map')} onBack={() => setScreen('hub')} />;
-  else if (screen === 'random') body = <RandomWords words={unlockedWords} onExit={() => setScreen(randomReturn)} />;
+  else if (screen === 'map') body = <FairyMap currentId={currentId} levelStars={levelStars} totalStars={totalStars} onPlay={startLevel} onStartOver={startOver} onRandom={() => launchRandom('map')} onBack={() => setScreen('hub')} musicOn={musicOn} onToggleMusic={toggleMusic} />;
+  else if (screen === 'random') body = <RandomWords words={unlockedWords} onExit={() => setScreen(randomReturn)} musicOn={musicOn} onToggleMusic={toggleMusic} />;
   else if (screen === 'game') body = (
     <SyllableGame
       key={activeLevel.id + '-' + qPos + '-' + mode}
       wordKey={queue[qPos]} mode={mode} scale={scale} accent={accent}
       progress={{ index: qPos, total: queue.length }}
-      onWin={onWordWin} onExit={() => setScreen('map')} onWordDone={handleWordDone} />
+      onWin={onWordWin} onExit={() => setScreen('map')} onWordDone={handleWordDone}
+      musicOn={musicOn} onToggleMusic={toggleMusic} />
   );
   else if (screen === 'readfind') body = (
     <ReadFindGame key={'rf' + gameNonce} words={unlockedWords} accent={GAME_ACCENT.readfind}
-      onDone={onGameRoundDone} onExit={() => setScreen('hub')} onWordDone={handleWordDone} />
+      onDone={onGameRoundDone} onExit={() => setScreen('hub')} onWordDone={handleWordDone}
+      musicOn={musicOn} onToggleMusic={toggleMusic} />
   );
   else if (screen === 'firstletter') body = (
     <FirstLetterGame key={'fl' + gameNonce} words={unlockedWords} accent={GAME_ACCENT.firstletter}
-      onDone={onGameRoundDone} onExit={() => setScreen('hub')} onWordDone={handleWordDone} />
+      onDone={onGameRoundDone} onExit={() => setScreen('hub')} onWordDone={handleWordDone}
+      musicOn={musicOn} onToggleMusic={toggleMusic} />
   );
   else if (screen === 'blend') body = (
     <BlendGame key={'bl' + gameNonce} words={unlockedWords} accent={GAME_ACCENT.blend}
-      onDone={onGameRoundDone} onExit={() => setScreen('hub')} onWordDone={handleWordDone} />
+      onDone={onGameRoundDone} onExit={() => setScreen('hub')} onWordDone={handleWordDone}
+      musicOn={musicOn} onToggleMusic={toggleMusic} />
   );
   else if (screen === 'reward') body = <RewardScreen starsEarned={earned} totalStars={totalStars} newTreasure={newTreasure} onContinue={onRewardContinue} />;
 

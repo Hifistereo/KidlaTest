@@ -40,8 +40,8 @@ function WinBurst() {
   );
 }
 
-// shared shell: top bar (back + progress dots), sparkles, win burst
-function GameFrame({ onExit, index, total, won, children }) {
+// shared shell: top bar (back + progress dots + music toggle), sparkles, win burst
+function GameFrame({ onExit, index, total, won, musicOn, onToggleMusic, children }) {
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <SparkleField count={7} />
@@ -56,7 +56,7 @@ function GameFrame({ onExit, index, total, won, children }) {
             }} />
           ))}
         </div>
-        <div style={{ width: 46 }} />
+        {onToggleMusic ? <MusicButton on={musicOn} onToggle={onToggleMusic} /> : <div style={{ width: 46 }} />}
       </div>
       {children}
       {won && <WinBurst />}
@@ -104,7 +104,7 @@ function useRound(pool, onDone, fallback) {
 // ATRODI ATTĒLU — read the written word, then tap the matching picture.
 // Picture options revealed only as choices; audio plays AFTER the pick.
 // ─────────────────────────────────────────────────────────────
-function ReadFindGame({ words, accent, onDone, onExit, onWordDone }) {
+function ReadFindGame({ words, accent, onDone, onExit, onWordDone, musicOn, onToggleMusic }) {
   const { word, idx, total, advance } = useRound(words, onDone);
 
   const opts = useRefP(null);
@@ -136,7 +136,7 @@ function ReadFindGame({ words, accent, onDone, onExit, onWordDone }) {
   }
 
   return (
-    <GameFrame onExit={onExit} index={idx} total={total} won={won}>
+    <GameFrame onExit={onExit} index={idx} total={total} won={won} musicOn={musicOn} onToggleMusic={onToggleMusic}>
       <div style={{ textAlign: 'center', padding: '18px 28px 0' }}>
         <span className="display" style={{ fontSize: 18, fontWeight: 500, color: 'var(--ink)' }}>
           {won ? 'Lieliski! 🎉' : 'Izlasi vārdu un atrodi attēlu!'}
@@ -169,7 +169,7 @@ function ReadFindGame({ words, accent, onDone, onExit, onWordDone }) {
 // ─────────────────────────────────────────────────────────────
 // PIRMAIS BURTS — picture shown (and spoken); pick the starting letter.
 // ─────────────────────────────────────────────────────────────
-function FirstLetterGame({ words, accent, onDone, onExit, onWordDone }) {
+function FirstLetterGame({ words, accent, onDone, onExit, onWordDone, musicOn, onToggleMusic }) {
   const { word, idx, total, advance } = useRound(words, onDone);
   const data = WORDS[word] || {};
   const first = Array.from(word)[0];
@@ -194,7 +194,10 @@ function FirstLetterGame({ words, accent, onDone, onExit, onWordDone }) {
       setTimeout(() => playWord(word), 350); // full word only — no letter replay
       const m = mistakes;
       if (onWordDone) onWordDone(m === 0);
-      setTimeout(() => advance(starsForMistakes(m)), 1150);
+      // Hold ~3s before advancing: the next word is announced the moment it
+      // mounts (the [word] effect above), so a short gap here made the win
+      // chime + spoken word overlap with the next word's name. 3s clears them.
+      setTimeout(() => advance(starsForMistakes(m)), 3000);
     } else {
       setMistakes(m => m + 1);
       setWrong(letter);
@@ -203,7 +206,7 @@ function FirstLetterGame({ words, accent, onDone, onExit, onWordDone }) {
   }
 
   return (
-    <GameFrame onExit={onExit} index={idx} total={total} won={won}>
+    <GameFrame onExit={onExit} index={idx} total={total} won={won} musicOn={musicOn} onToggleMusic={onToggleMusic}>
       {/* picture card (tap to hear) */}
       <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 18 }}>
         <div onClick={() => playWord(word)} style={{
@@ -248,7 +251,7 @@ function FirstLetterGame({ words, accent, onDone, onExit, onWordDone }) {
 // SKAŅAS — hear each sound (tap to replay), then pick the matching picture.
 // Uses the curated BLEND_WORDS subset so blending is clean.
 // ─────────────────────────────────────────────────────────────
-function BlendGame({ words, accent, onDone, onExit, onWordDone }) {
+function BlendGame({ words, accent, onDone, onExit, onWordDone, musicOn, onToggleMusic }) {
   // restrict the pool to blend-friendly words the child has unlocked
   const pool = useRefP(null);
   if (!pool.current) {
@@ -304,7 +307,7 @@ function BlendGame({ words, accent, onDone, onExit, onWordDone }) {
   }
 
   return (
-    <GameFrame onExit={onExit} index={idx} total={total} won={won}>
+    <GameFrame onExit={onExit} index={idx} total={total} won={won} musicOn={musicOn} onToggleMusic={onToggleMusic}>
       <div style={{ textAlign: 'center', padding: '18px 28px 0' }}>
         <span className="display" style={{ fontSize: 19, fontWeight: 500, color: 'var(--ink)' }}>
           {won ? 'Lieliski! 🎉' : 'Klausies skaņas — kāds vārds sanāk?'}
