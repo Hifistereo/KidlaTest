@@ -1,0 +1,7 @@
+# Local editor / harness config — not needed for the hosted game
+.claude/
+
+# OS junk
+Thumbs.db
+desktop.ini
+.DS_Store
