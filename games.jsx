@@ -10,11 +10,19 @@ const { useState: useStateP, useEffect: useEffectP, useRef: useRefP } = React;
 const ROUND_SIZE = 6;
 const starsForMistakes = (m) => (m === 0 ? 3 : m === 1 ? 2 : 1);
 
-// build a shuffled round of up to `size` words from `pool` (with fallback)
-function buildRound(pool, size) {
-  const base = (pool && pool.length) ? pool : Object.keys(WORDS);
+// build a shuffled round of up to `size` words. Starts from `pool` (the words
+// the child has unlocked) and, if that's shorter than `size`, pads with the
+// easiest unused words from `fallback` (default: all WORDS, easy → hard order)
+// so a round is always full even for a brand-new player with one unlocked word.
+function buildRound(pool, size, fallback) {
+  const fb = (fallback && fallback.length) ? fallback : Object.keys(WORDS);
+  const base = (pool && pool.length) ? pool.slice() : fb.slice();
+  for (const w of fb) {
+    if (base.length >= size) break;
+    if (!base.includes(w)) base.push(w);
+  }
   const list = shuffle(base).slice(0, Math.min(size, base.length));
-  return list.length ? list : [Object.keys(WORDS)[0]];
+  return list.length ? list : [fb[0] || Object.keys(WORDS)[0]];
 }
 
 // celebratory star burst, same as SyllableGame's win overlay
@@ -75,9 +83,9 @@ function PicTile({ wordKey, accent, wrong, dim, onPick }) {
 // ─────────────────────────────────────────────────────────────
 // shared round controller — handles word progression + star tally
 // ─────────────────────────────────────────────────────────────
-function useRound(pool, onDone) {
+function useRound(pool, onDone, fallback) {
   const round = useRefP(null);
-  if (!round.current) round.current = buildRound(pool, ROUND_SIZE);
+  if (!round.current) round.current = buildRound(pool, ROUND_SIZE, fallback);
   const list = round.current;
   const [idx, setIdx] = useStateP(0);
   const ratings = useRefP([]);
@@ -183,8 +191,7 @@ function FirstLetterGame({ words, accent, onDone, onExit, onWordDone }) {
     if (letter === first) {
       setWon(true);
       playSfx('win');
-      playSound(first);
-      setTimeout(() => playWord(word), 500);
+      setTimeout(() => playWord(word), 350); // full word only — no letter replay
       const m = mistakes;
       if (onWordDone) onWordDone(m === 0);
       setTimeout(() => advance(starsForMistakes(m)), 1150);
@@ -248,7 +255,7 @@ function BlendGame({ words, accent, onDone, onExit, onWordDone }) {
     const unlocked = (words || []).filter(w => BLEND_WORDS[w]);
     pool.current = unlocked.length ? unlocked : Object.keys(BLEND_WORDS);
   }
-  const { word, idx, total, advance } = useRound(pool.current, onDone);
+  const { word, idx, total, advance } = useRound(pool.current, onDone, Object.keys(BLEND_WORDS));
   const sounds = BLEND_WORDS[word] || Array.from(word);
 
   const opts = useRefP(null);

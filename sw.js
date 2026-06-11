@@ -5,7 +5,7 @@
 // `activate`). Strategy is cache-first: the app is fully static, so once the
 // precache below is populated the game runs instantly and 100% offline.
 
-const CACHE_NAME = 'burtu-feja-v1';
+const CACHE_NAME = 'burtu-feja-v3';
 
 // Complete, explicit list of every asset the app needs at runtime.
 // NOTE: cache.addAll() is atomic — if ANY entry 404s, the whole install
@@ -107,7 +107,10 @@ const PRECACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(PRECACHE))
+      // Fetch every asset with cache:'reload' so the precache bypasses the
+      // browser's HTTP cache. Without this, a CACHE_NAME bump can re-store a
+      // stale file the browser still had cached, and the update never lands.
+      .then((cache) => cache.addAll(PRECACHE.map((u) => new Request(u, { cache: 'reload' }))))
       .then(() => self.skipWaiting())
   );
 });

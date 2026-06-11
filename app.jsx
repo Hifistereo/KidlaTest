@@ -100,20 +100,29 @@ function App() {
   }
 
   const [scale, setScale] = useS(1);
+  const [vpH, setVpH] = useS('100vh');
   useE(() => {
-    // Scale the 402×874 canvas to fill the viewport edge-to-edge (no frame).
-    // The phone aspect (~0.46) nearly matches real phones, so this fills the
-    // screen on mobile; on a portrait tablet it fills height and centres.
-    const f = () => setScale(Math.min(window.innerHeight / 874, window.innerWidth / 402));
+    // Scale the 402×874 canvas to fit the *visible* viewport (no frame).
+    // On mobile the browser toolbar makes the visual viewport shorter than
+    // window.innerHeight; sizing to innerHeight pushed the bottom row (answer
+    // choices) below the visible area. Using visualViewport.height — and
+    // matching the canvas container height to it — keeps everything on screen.
+    const f = () => {
+      const vv = window.visualViewport;
+      const h = vv ? vv.height : window.innerHeight;
+      const w = vv ? vv.width : window.innerWidth;
+      setScale(Math.min(h / 874, w / 402));
+      setVpH(h + 'px');
+    };
     f();
     window.addEventListener('resize', f);
     window.addEventListener('orientationchange', f);
     const vv = window.visualViewport;
-    if (vv) vv.addEventListener('resize', f);
+    if (vv) { vv.addEventListener('resize', f); vv.addEventListener('scroll', f); }
     return () => {
       window.removeEventListener('resize', f);
       window.removeEventListener('orientationchange', f);
-      if (vv) vv.removeEventListener('resize', f);
+      if (vv) { vv.removeEventListener('resize', f); vv.removeEventListener('scroll', f); }
     };
   }, []);
 
@@ -251,7 +260,7 @@ function App() {
 
   return (
     <div style={{
-      ...cssVars, width: '100vw', height: '100vh', overflow: 'hidden',
+      ...cssVars, width: '100vw', height: vpH, overflow: 'hidden',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       background: 'linear-gradient(180deg, var(--bg1) 0%, var(--bg2) 100%)',
     }}>
