@@ -1,0 +1,32 @@
+{
+  "name": "Burtu Feja",
+  "short_name": "Burtu Feja",
+  "description": "Latviešu lasīšanas spēle bērniem.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#f6ecf6",
+  "theme_color": "#f6ecf6",
+  "lang": "lv",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+================================================================
+  Burtu Feja — put the game on a Galaxy Tab as a real app icon
+================================================================
+
+The game is now a PWA (a small website that installs like an app).
+You host it online ONCE, open it on the tablet, and tap "Add to Home
+screen". After that it lives as an icon, opens full-screen, and works
+WITHOUT internet — all the code, fonts and sounds get saved on the
+tablet the first time it loads.
+
+You only need the internet for the one-time setup. After that you can
+keep Wi-Fi off forever.
+
+
+================================================================
+STEP 1 — Put the folder online (do this once, on the PC)
+================================================================
+Pick ONE. Both give a free https:// address (required for the offline
+magic to work).
+
+  EASIEST — Netlify Drop (no account, no typing):
+    1. On the PC, open  https://app.netlify.com/drop  in a browser.
+    2. Drag the WHOLE game folder onto the page.
+    3. Wait for upload, then it shows an address like
+         https://something-random.netlify.app
+       That's your game link. (Make a free account if you want to keep
+       the same link / replace it later.)
+
+  MORE PERMANENT — GitHub Pages:
+    1. Create a free GitHub account + a new repository.
+    2. Upload the whole folder to it.
+    3. Repo Settings -> Pages -> deploy from the main branch.
+    4. It gives a link like  https://yourname.github.io/reponame/
+
+Note: you do NOT need the ".claude" folder or any ".md" plan files —
+just the game files (index.html, manifest.json, sw.js, the .jsx files,
+and the "audio", "vendor", "icons", "images" folders).
+
+
+================================================================
+STEP 2 — Install it on the tablet (once, with internet)
+================================================================
+1. On the Galaxy Tab, open Chrome and go to the link from Step 1.
+2. Tap once so it starts (this also unlocks the sound).
+3. Open Chrome's  menu  ->  "Add to Home screen"  (or "Install app").
+   Confirm. A "Burtu Feja" unicorn icon appears on the home screen.
+4. IMPORTANT: let the page sit for ~10-20 seconds while still online,
+   so it can finish saving all the sounds for offline use.
+5. Done. Open it from the home-screen icon — it runs full-screen.
+
+
+================================================================
+STEP 3 — Play offline
+================================================================
+- Turn Wi-Fi off (or Airplane mode) and tap the icon. It still works.
+- Tap once at the start: Android stays silent until the first tap, and
+  the game starts the music + word sounds on that first tap.
+- Progress (stars, current level) is saved on the tablet, so it
+  remembers where the child left off. The 🔄 button starts over.
+
+
+================================================================
+Updating the game later
+================================================================
+If you change the game and re-host it, bump the version line near the
+top of  sw.js  (e.g. 'burtu-feja-v1' -> 'burtu-feja-v2') before
+uploading. The tablet picks up the new version the next time it opens
+the icon while online; offline it keeps using the last saved version.
+
+
+================================================================
+Tips / troubleshooting
+================================================================
+- No sound the first time offline? Make sure you did Step 2.4 (let it
+  load fully while still online so every sound is saved).
+- It must be opened over the https:// link at least once; you cannot
+  just copy the folder onto the tablet and open the file directly —
+  Android Chrome blocks local files, which is why we host it instead.
+- To check it saved itself: open the link once, turn on Airplane mode,
+  reload — if it still loads, it's fully offline-ready.

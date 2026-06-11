@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="lv">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Burtu Feja — Latvian Reading App</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#f6ecf6" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<link href="vendor/fonts/fonts.css" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  html, body { overscroll-behavior: none; touch-action: manipulation; }
+  body {
+    font-family: 'Nunito', system-ui, sans-serif;
+    background:
+      radial-gradient(120% 80% at 20% 0%, #fbe7d6 0%, transparent 60%),
+      radial-gradient(120% 90% at 90% 100%, #ecd9f3 0%, transparent 55%),
+      linear-gradient(160deg, #f6ecf6 0%, #efe6f2 100%);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  #root { width: 100vw; height: 100vh; }
+
+  /* ── App-wide kid-friendly type ── */
+  .display { font-family: 'Fredoka', 'Nunito', sans-serif; }
+
+  /* ── Chunky button with 3D bottom ── */
+  .kid-btn {
+    font-family: 'Fredoka', sans-serif;
+    border: none; cursor: pointer;
+    border-radius: 999px;
+    color: #fff;
+    background: var(--primary);
+    box-shadow: 0 6px 0 var(--primary-dark), 0 10px 18px rgba(120,60,110,0.22);
+    transition: transform .08s ease, box-shadow .08s ease;
+    user-select: none; -webkit-tap-highlight-color: transparent;
+  }
+  .kid-btn:active {
+    transform: translateY(5px);
+    box-shadow: 0 1px 0 var(--primary-dark), 0 4px 10px rgba(120,60,110,0.18);
+  }
+  .kid-btn.ghost {
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: 0 5px 0 rgba(120,80,120,0.18), 0 8px 16px rgba(120,60,110,0.12);
+  }
+  .kid-btn.ghost:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(120,80,120,0.18); }
+
+  /* ── Tiles ── */
+  .tile {
+    font-family: 'Fredoka', sans-serif;
+    cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
+    transition: transform .12s cubic-bezier(.34,1.56,.64,1), box-shadow .12s ease, opacity .15s ease;
+  }
+  .tile:active { transform: scale(.94); }
+
+  /* ── Animations ── */
+  @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+  @keyframes floaty-slow { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+  @keyframes sparkle { 0%,100% { opacity: .25; transform: scale(.7) rotate(0deg); } 50% { opacity: 1; transform: scale(1.1) rotate(20deg); } }
+  @keyframes pop-in { 0% { opacity: 0; transform: scale(.6); } 60% { transform: scale(1.08); } 100% { opacity: 1; transform: scale(1); } }
+  @keyframes shake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-7px) rotate(-3deg); } 40% { transform: translateX(7px) rotate(3deg); } 60% { transform: translateX(-5px) rotate(-2deg); } 80% { transform: translateX(5px) rotate(2deg); } }
+  @keyframes pulse-ring { 0% { transform: scale(1); opacity: .55; } 100% { transform: scale(1.7); opacity: 0; } }
+  @keyframes bob { 0%,100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-6px) rotate(3deg); } }
+  @keyframes confetti-fall {
+    0% { transform: translateY(-30px) rotate(0deg); opacity: 0; }
+    10% { opacity: 1; }
+    100% { transform: translateY(720px) rotate(640deg); opacity: 1; }
+  }
+  @keyframes star-pop { 0% { transform: scale(0) rotate(-40deg); } 60% { transform: scale(1.25) rotate(10deg); } 100% { transform: scale(1) rotate(0); } }
+  @keyframes slide-up { 0% { opacity: 0; transform: translateY(26px); } 100% { opacity: 1; transform: translateY(0); } }
+  @keyframes glow { 0%,100% { box-shadow: 0 0 0 0 rgba(255,210,120,.0); } 50% { box-shadow: 0 0 30px 6px rgba(255,210,120,.55); } }
+  @keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
+  /* milestone card bursting away: squash bigger, then rocket up, spin & shrink */
+  @keyframes milestone-out {
+    0%   { transform: scale(1) rotate(0deg); opacity: 1; }
+    28%  { transform: scale(1.16) rotate(-5deg); opacity: 1; }
+    100% { transform: translateY(-120px) scale(.15) rotate(22deg); opacity: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; }
+  }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- PWA: register the offline service worker (plain JS, runs before Babel) -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js').catch(function () {});
+      });
+      if (navigator.storage && navigator.storage.persist) {
+        navigator.storage.persist().catch(function () {});
+      }
+    }
+  </script>
+
+  <script src="vendor/react.production.min.js"></script>
+  <script src="vendor/react-dom.production.min.js"></script>
+  <script src="vendor/babel.min.js"></script>
+
+  <script type="text/babel" src="ios-frame.jsx"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="data.jsx"></script>
+  <script type="text/babel" src="game.jsx"></script>
+  <script type="text/babel" src="games.jsx"></script>
+  <script type="text/babel" src="screens.jsx"></script>
+  <script type="text/babel" src="app.jsx"></script>
+</body>
+</html>
