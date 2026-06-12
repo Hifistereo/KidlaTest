@@ -374,6 +374,65 @@ function SpeechBubble({ children, style = {} }) {
   );
 }
 
+// ── ambient world decorations (emoji + CSS only, never interactive) ──
+
+// grounding strip of soft hills + swaying flowers for menu screens
+function Meadow({ height = 110 }) {
+  const flora = ['🌸', '🌷', '🌼', '🌿', '🌻', '🍄'];
+  return (
+    <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height, pointerEvents: 'none', zIndex: 1 }}>
+      <svg viewBox="0 0 402 110" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+        <path d="M0 70 Q 100 30 201 60 T 402 50 L 402 110 L 0 110 Z" fill="rgba(255,255,255,.35)" />
+        <path d="M0 90 Q 120 55 240 80 T 402 75 L 402 110 L 0 110 Z" fill="rgba(255,255,255,.5)" />
+      </svg>
+      {flora.map((f, i) => (
+        <div key={i} style={{ position: 'absolute', bottom: 6 + (i % 3) * 9, left: `${7 + i * 16}%` }}>
+          <div style={{
+            fontSize: 17 + (i % 3) * 4, transformOrigin: 'bottom center',
+            animation: `sway ${2.6 + (i % 3) * 0.5}s ease-in-out ${i * 0.3}s infinite`,
+          }}>{f}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// butterflies slowly crossing the screen (drift-x outer, floaty bob inner —
+// nested because a CSS animation overrides the element's own transform)
+function Butterflies({ count = 2, zIndex = 2 }) {
+  const flock = [
+    { top: '20%', dur: 26, delay: 0, size: 22, flip: false },
+    { top: '45%', dur: 34, delay: 9, size: 18, flip: true },
+    { top: '63%', dur: 30, delay: 17, size: 20, flip: false },
+  ].slice(0, count);
+  return (
+    <>
+      {flock.map((b, i) => (
+        <div key={i} style={{
+          position: 'absolute', top: b.top, left: 0, pointerEvents: 'none', zIndex,
+          animation: `drift-x ${b.dur}s linear ${b.delay}s infinite${b.flip ? ' reverse' : ''}`,
+        }}>
+          <div style={{ animation: 'floaty 2.4s ease-in-out infinite' }}>
+            <span style={{ fontSize: b.size, display: 'inline-block', transform: b.flip ? 'scaleX(-1)' : 'none', filter: 'drop-shadow(0 2px 2px rgba(140,90,130,.2))' }}>🦋</span>
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
+// soft pastel rainbow arc (confetti palette), e.g. behind the fairy
+function Rainbow({ width = 320, style = {} }) {
+  return (
+    <div style={{ position: 'absolute', width, height: width / 2, pointerEvents: 'none', ...style }}>
+      <div style={{
+        position: 'absolute', inset: 0, opacity: .8,
+        background: 'radial-gradient(circle at 50% 100%, transparent 55%, #d8c9ff 55% 62%, #c9e8ff 62% 69%, #c9f3df 69% 76%, #ffe5aa 76% 83%, #ffd1ec 83% 90%, transparent 90%)',
+      }} />
+    </div>
+  );
+}
+
 // little star pill used for currency
 function StarCount({ value }) {
   return (
@@ -394,4 +453,5 @@ Object.assign(window, {
   LETTER_SOUNDS, LV_ALPHABET, BLEND_WORDS,
   pickDistractors, pickWordDistractors, pickLetterDistractors, shuffle,
   Sparkle, SparkleField, Fairy, SpeechBubble, StarCount,
+  Meadow, Butterflies, Rainbow,
 });

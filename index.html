@@ -77,6 +77,10 @@
   @keyframes slide-up { 0% { opacity: 0; transform: translateY(26px); } 100% { opacity: 1; transform: translateY(0); } }
   @keyframes glow { 0%,100% { box-shadow: 0 0 0 0 rgba(255,210,120,.0); } 50% { box-shadow: 0 0 30px 6px rgba(255,210,120,.55); } }
   @keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
+  /* ambient butterflies crossing the 402px canvas */
+  @keyframes drift-x { from { transform: translateX(-70px); } to { transform: translateX(470px); } }
+  /* meadow flowers / map scenery gently swaying */
+  @keyframes sway { 0%,100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
   /* drifting 💤 above the sleeping fairy */
   @keyframes zzz-float {
     0%   { opacity: 0; transform: translate(0, 0) scale(.7); }

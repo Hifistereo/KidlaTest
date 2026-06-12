@@ -96,11 +96,13 @@ function ProgressDots({ index, total }) {
   return (
     <div style={{ flex: 1, display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'center' }}>
       {Array.from({ length: total }).map((_, i) => (
-        <div key={i} style={{
-          width: i === index ? 30 : 12, height: 12, borderRadius: 999,
-          background: i < index ? GOLD : i === index ? 'var(--primary)' : 'rgba(150,110,150,.28)',
-          transition: 'all .3s',
-        }} />
+        i < index
+          ? <span key={i} style={{ fontSize: 15, lineHeight: '12px', filter: 'drop-shadow(0 1px 1px rgba(180,130,40,.4))' }}>⭐</span>
+          : <div key={i} style={{
+              width: i === index ? 30 : 12, height: 12, borderRadius: 999,
+              background: i === index ? 'var(--primary)' : 'rgba(150,110,150,.28)',
+              transition: 'all .3s',
+            }} />
       ))}
     </div>
   );

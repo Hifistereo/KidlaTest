@@ -319,6 +319,9 @@ function Welcome({ onStart, musicOn, onToggleMusic }) {
     <div style={{ position: 'absolute', inset: 0 }}>
       <Sky />
       <SparkleField count={10} />
+      <Rainbow width={340} style={{ top: 96, left: '50%', marginLeft: -170 }} />
+      <Meadow />
+      <Butterflies count={2} />
       {onToggleMusic && (
         <div style={{ position: 'absolute', top: 56, right: 18, zIndex: 20 }}>
           <MusicButton on={musicOn} onToggle={onToggleMusic} />
@@ -372,6 +375,8 @@ function GamesHub({ totalStars, onPick, onRandom, musicOn, onToggleMusic }) {
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
       <Sky />
       <SparkleField count={7} />
+      <Meadow />
+      <Butterflies count={2} zIndex={8} />
 
       {/* top bar */}
       <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '60px 18px 6px' }}>
@@ -391,11 +396,13 @@ function GamesHub({ totalStars, onPick, onRandom, musicOn, onToggleMusic }) {
           const accent = HUES[c.hue];
           return (
             <button key={c.key} onClick={() => handle(c.key)} className="tile" style={{
-              width: '100%', border: 'none', textAlign: 'left', marginBottom: 14,
+              width: '100%', border: 'none', textAlign: 'left', marginBottom: 14, position: 'relative', overflow: 'hidden',
               display: 'flex', alignItems: 'center', gap: 16, padding: '16px 18px', borderRadius: 26,
               background: 'var(--surface)', boxShadow: `0 7px 0 ${accent[1]}, 0 11px 20px rgba(140,90,130,.14)`,
               animation: `slide-up .5s ease ${i * 0.06}s both`,
             }}>
+              {/* soft accent wash in the corner */}
+              <div style={{ position: 'absolute', right: -32, top: -32, width: 120, height: 120, borderRadius: '50%', background: accent[0], opacity: .18, filter: 'blur(2px)', pointerEvents: 'none' }} />
               <div style={{
                 width: 64, height: 64, borderRadius: 20, flexShrink: 0, background: accent[0],
                 display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 34,
@@ -424,6 +431,8 @@ function ChapterSelect({ chapters, currentId, levelStars, totalStars, onPick, on
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
       <Sky />
       <SparkleField count={6} />
+      <Meadow />
+      <Butterflies count={2} />
 
       {/* top bar */}
       <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '60px 18px 6px' }}>
@@ -589,6 +598,7 @@ function FairyMap({ chapter, currentId, levelStars, totalStars, onPlay, onStartO
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
       <Sky />
       <SparkleField count={6} />
+      <Butterflies count={2} zIndex={8} />
 
       {/* sticky top bar */}
       <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '60px 18px 12px' }}>
@@ -639,6 +649,21 @@ function FairyMap({ chapter, currentId, levelStars, totalStars, onPlay, onStartO
               animation: `sparkle ${2.2 + (i % 3) * 0.5}s ease-in-out ${i * 0.4}s infinite`,
             }}>✨</div>
           ))}
+
+          {/* roadside scenery: one plant per level, opposite the node */}
+          {levels.map((lv, idx) => {
+            const flora = ['🌳', '🌸', '🍄', '🌷', '🌲', '🌼', '⛰️', '🌻'];
+            const dx = lv.side === 'l' ? 128 : -128;
+            return (
+              <div key={'sc' + lv.id} style={{ position: 'absolute', top: 110 + idx * 132 + 44, left: `calc(50% + ${dx}px)`, marginLeft: -16, pointerEvents: 'none' }}>
+                <div style={{
+                  fontSize: 26 + (idx % 3) * 5, transformOrigin: 'bottom center',
+                  animation: `sway ${3 + (idx % 3)}s ease-in-out ${idx * 0.4}s infinite`,
+                  filter: 'drop-shadow(0 3px 4px rgba(140,90,130,.18))',
+                }}>{flora[idx % flora.length]}</div>
+              </div>
+            );
+          })}
 
           {levels.map((lv, idx) => {
             const top = 110 + idx * 132;
@@ -757,6 +782,7 @@ function RandomWords({ words, onExit, musicOn, onToggleMusic, onShowCards, restP
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
       <Sky />
       <SparkleField count={6} />
+      <Meadow />
 
       {/* top bar with exit */}
       <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '60px 18px 0' }}>
@@ -840,6 +866,8 @@ function RewardScreen({ starsEarned, totalStars, newTreasure, newCard, onContinu
           animation: `confetti-fall ${c.dur}s linear ${c.delay}s infinite`,
         }} />
       ))}
+
+      <Rainbow width={340} style={{ top: 110, left: '50%', marginLeft: -170 }} />
 
       <div style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 30px', textAlign: 'center' }}>
         <div style={{ animation: 'pop-in .5s ease both' }}>
