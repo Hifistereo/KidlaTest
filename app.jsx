@@ -82,7 +82,7 @@ function App() {
   useE(() => {
     const bg = new Audio('audio/background5min.mp3');
     bg.loop = true;
-    bg.volume = 0.03; // quiet under the spoken words (was 0.12)
+    bg.volume = 0.20; // background music at 20%; voice and letter clips stay at full volume
     bgRef.current = bg;
     const start = () => {
       window.removeEventListener('pointerdown', start);

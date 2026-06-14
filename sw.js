@@ -5,7 +5,7 @@
 // `activate`). Strategy is cache-first: the app is fully static, so once the
 // precache below is populated the game runs instantly and 100% offline.
 
-const CACHE_NAME = 'burtu-feja-v13';
+const CACHE_NAME = 'burtu-feja-v14';
 
 // Complete, explicit list of every asset the app needs at runtime.
 // NOTE: cache.addAll() is atomic — if ANY entry 404s, the whole install
