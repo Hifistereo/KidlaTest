@@ -5,7 +5,7 @@
 // `activate`). Strategy is cache-first: the app is fully static, so once the
 // precache below is populated the game runs instantly and 100% offline.
 
-const CACHE_NAME = 'burtu-feja-v12';
+const CACHE_NAME = 'burtu-feja-v13';
 
 // Complete, explicit list of every asset the app needs at runtime.
 // NOTE: cache.addAll() is atomic — if ANY entry 404s, the whole install
@@ -14,6 +14,7 @@ const PRECACHE = [
   '.',
   'index.html',
   'manifest.json',
+  'styles.css',
 
   // app icons
   'icons/icon-192.png',
@@ -47,7 +48,6 @@ const PRECACHE = [
   'vendor/fonts/nunito-800-normal-latin.woff2',
 
   // app source (transpiled in-browser by babel)
-  'ios-frame.jsx',
   'tweaks-panel.jsx',
   'data.jsx',
   'game.jsx',

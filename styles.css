@@ -1,0 +1,187 @@
+/* styles.css — Burtu Feja global styles.
+   Mobile-first fluid layout: design tokens on :root, breakpoint overrides
+   below, then shared layout utilities and the app-wide animations. */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+html, body { overscroll-behavior: none; touch-action: manipulation; }
+body {
+  font-family: 'Nunito', system-ui, sans-serif;
+  background:
+    radial-gradient(120% 80% at 20% 0%, #fbe7d6 0%, transparent 60%),
+    radial-gradient(120% 90% at 90% 100%, #ecd9f3 0%, transparent 55%),
+    linear-gradient(160deg, #f6ecf6 0%, #efe6f2 100%);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+#root { width: 100%; height: var(--app-h, 100dvh); }
+
+/* ── Design tokens ──
+   --app-h is kept in sync with visualViewport by app.jsx so the layout
+   never hides behind mobile browser chrome; 100dvh is the fallback. */
+:root {
+  --app-h: 100dvh;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  /* fluid type */
+  --fs-title: clamp(34px, 11vw, 52px);   /* Welcome "Burtu Feja" */
+  --fs-h1: clamp(28px, 7vw, 46px);       /* big praise headings */
+  --fs-h2: clamp(18px, 4.6vw, 22px);     /* top-bar titles */
+
+  /* control + column sizing */
+  --ctl: 46px;                            /* round top-bar buttons */
+  --col-game: 100%;                       /* focused game column */
+  --col-list: 100%;                       /* menu/list/gallery column */
+  --col-pad: 16px;
+}
+@media (min-width: 768px)  { :root { --col-game: 600px; --col-list: 720px; --col-pad: 24px; --ctl: 52px; } }
+@media (min-width: 1024px) { :root { --col-game: 640px; --col-list: 860px; } }
+@media (min-width: 1366px) { :root { --col-game: 680px; --col-list: 920px; --col-pad: 32px; } }
+
+/* ── Layout utilities ── */
+.screen {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.top-bar {
+  position: relative; z-index: 10;
+  display: flex; align-items: center; gap: 8px; row-gap: 8px;
+  flex-wrap: wrap;
+  width: min(100%, var(--col-list));
+  margin: 0 auto;
+  padding: calc(var(--safe-top) + 12px) calc(var(--safe-right) + var(--col-pad)) 6px calc(var(--safe-left) + var(--col-pad));
+}
+.top-bar--game { width: min(100%, var(--col-game)); }
+.bar-title {
+  font-weight: 600; font-size: var(--fs-h2);
+  min-width: 0; overflow-wrap: anywhere;
+}
+.content {
+  position: relative; z-index: 5; flex: 1;
+  overflow-y: auto; overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+.col {
+  width: min(100%, var(--col-list));
+  margin: 0 auto;
+  padding: 10px var(--col-pad) calc(30px + var(--safe-bottom));
+}
+.game-col {
+  position: relative;
+  width: min(100%, var(--col-game));
+  margin: 0 auto;
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column;
+  overflow-y: auto; overflow-x: hidden; /* very short viewports scroll instead of clipping */
+}
+
+/* picture-choice grid (Atrodi attēlu): 2×2 normally, one row in short landscape */
+.pic-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  width: 100%; max-width: 480px; margin: 0 auto;
+  padding: 0 26px calc(36px + var(--safe-bottom));
+}
+@media (orientation: landscape) and (max-height: 480px) {
+  .pic-grid { grid-template-columns: repeat(4, 1fr); max-width: 640px; gap: 12px; }
+}
+.menu-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+@media (min-width: 768px) { .menu-grid { grid-template-columns: 1fr 1fr; gap: 18px; } }
+
+/* collectible-card grids (gallery screen + in-game peek) */
+.card-grid {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(clamp(96px, 22vw, 150px), 1fr));
+}
+.card-grid--peek {
+  grid-template-columns: repeat(auto-fill, minmax(clamp(88px, 20vw, 130px), 1fr));
+  gap: 10px;
+}
+
+/* short landscape viewports (phones rotated): tighten the chrome */
+@media (orientation: landscape) and (max-height: 480px) {
+  :root { --fs-title: clamp(28px, 6vh, 38px); }
+  .top-bar { padding-top: calc(var(--safe-top) + 6px); padding-bottom: 2px; }
+}
+
+/* ── App-wide kid-friendly type ── */
+.display { font-family: 'Fredoka', 'Nunito', sans-serif; }
+
+/* ── Chunky button with 3D bottom ── */
+.kid-btn {
+  font-family: 'Fredoka', sans-serif;
+  border: none; cursor: pointer;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--primary);
+  box-shadow: 0 6px 0 var(--primary-dark), 0 10px 18px rgba(120,60,110,0.22);
+  transition: transform .08s ease, box-shadow .08s ease;
+  user-select: none; -webkit-tap-highlight-color: transparent;
+}
+.kid-btn:active {
+  transform: translateY(5px);
+  box-shadow: 0 1px 0 var(--primary-dark), 0 4px 10px rgba(120,60,110,0.18);
+}
+.kid-btn.ghost {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 5px 0 rgba(120,80,120,0.18), 0 8px 16px rgba(120,60,110,0.12);
+}
+.kid-btn.ghost:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(120,80,120,0.18); }
+
+/* round icon button used in top bars */
+.icon-btn {
+  width: var(--ctl); height: var(--ctl);
+  display: flex; align-items: center; justify-content: center;
+  padding: 0; flex-shrink: 0;
+}
+
+/* ── Tiles ── */
+.tile {
+  font-family: 'Fredoka', sans-serif;
+  cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
+  transition: transform .12s cubic-bezier(.34,1.56,.64,1), box-shadow .12s ease, opacity .15s ease;
+}
+.tile:active { transform: scale(.94); }
+
+/* ── Animations ── */
+@keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+@keyframes floaty-slow { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+@keyframes sparkle { 0%,100% { opacity: .25; transform: scale(.7) rotate(0deg); } 50% { opacity: 1; transform: scale(1.1) rotate(20deg); } }
+@keyframes pop-in { 0% { opacity: 0; transform: scale(.6); } 60% { transform: scale(1.08); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes shake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-7px) rotate(-3deg); } 40% { transform: translateX(7px) rotate(3deg); } 60% { transform: translateX(-5px) rotate(-2deg); } 80% { transform: translateX(5px) rotate(2deg); } }
+@keyframes pulse-ring { 0% { transform: scale(1); opacity: .55; } 100% { transform: scale(1.7); opacity: 0; } }
+@keyframes bob { 0%,100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-6px) rotate(3deg); } }
+@keyframes confetti-fall {
+  0% { transform: translateY(-30px) rotate(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  100% { transform: translateY(110vh) rotate(640deg); opacity: 1; }
+}
+@keyframes star-pop { 0% { transform: scale(0) rotate(-40deg); } 60% { transform: scale(1.25) rotate(10deg); } 100% { transform: scale(1) rotate(0); } }
+@keyframes slide-up { 0% { opacity: 0; transform: translateY(26px); } 100% { opacity: 1; transform: translateY(0); } }
+@keyframes glow { 0%,100% { box-shadow: 0 0 0 0 rgba(255,210,120,.0); } 50% { box-shadow: 0 0 30px 6px rgba(255,210,120,.55); } }
+@keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
+/* ambient butterflies crossing the full screen width */
+@keyframes drift-x { from { transform: translateX(-80px); } to { transform: translateX(calc(100vw + 80px)); } }
+/* meadow flowers / map scenery gently swaying */
+@keyframes sway { 0%,100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+/* drifting 💤 above the sleeping fairy */
+@keyframes zzz-float {
+  0%   { opacity: 0; transform: translate(0, 0) scale(.7); }
+  25%  { opacity: .9; }
+  100% { opacity: 0; transform: translate(16px, -52px) scale(1.2); }
+}
+/* milestone card bursting away: squash bigger, then rocket up, spin & shrink */
+@keyframes milestone-out {
+  0%   { transform: scale(1) rotate(0deg); opacity: 1; }
+  28%  { transform: scale(1.16) rotate(-5deg); opacity: 1; }
+  100% { transform: translateY(-120px) scale(.15) rotate(22deg); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; }
+}

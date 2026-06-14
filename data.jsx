@@ -335,7 +335,9 @@ function SparkleField({ count = 8, colors = ['#fff', '#ffe9b0', '#ffd1ec'] }) {
 }
 
 // Fairy mascot — friendly guide. (Emoji stand-in for custom illustration.)
-function Fairy({ size = 92, mood = 'happy', float = true }) {
+// `buddy` is the chosen companion card image: a small tilted card floating
+// at the fairy's side wherever she appears.
+function Fairy({ size = 92, mood = 'happy', float = true, buddy = null }) {
   const faces = { happy: '🧚‍♀️', cheer: '🧚‍♀️', think: '🧚‍♀️' };
   return (
     <div style={{
@@ -353,6 +355,43 @@ function Fairy({ size = 92, mood = 'happy', float = true }) {
         fontSize: size * 0.74, lineHeight: 1,
         filter: 'drop-shadow(0 6px 8px rgba(150,90,140,.28))',
       }}>{faces[mood] || faces.happy}</div>
+      {buddy && (
+        <div style={{
+          position: 'absolute', right: -size * 0.28, bottom: -size * 0.02,
+          width: size * 0.46, height: size * 0.61, borderRadius: size * 0.10,
+          overflow: 'hidden', background: '#fff',
+          boxShadow: `0 0 0 ${Math.max(2, Math.round(size * 0.04))}px #fff, 0 4px 10px rgba(140,90,130,.3)`,
+          transform: 'rotate(7deg)', zIndex: 2, pointerEvents: 'none',
+          animation: float ? 'floaty 3.4s ease-in-out .4s infinite' : 'none',
+        }}>
+          <img src={buddy} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            onError={(e) => { e.target.style.display = 'none'; }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// round ghost icon button used in every top bar (size from --ctl)
+function IconBtn({ onClick, label, fontSize = 20, children }) {
+  return (
+    <button onClick={onClick} className="kid-btn ghost icon-btn" aria-label={label} title={label}
+      style={{ fontSize }}>
+      {children}
+    </button>
+  );
+}
+
+// shared screen header — wraps instead of clipping, safe-area aware,
+// centered to the responsive content column (.top-bar in styles.css).
+function TopBar({ left, title, titleStyle = {}, right, game }) {
+  return (
+    <div className={'top-bar' + (game ? ' top-bar--game' : '')}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: '1 1 auto' }}>
+        {left}
+        {title && <div className="display bar-title" style={{ color: 'var(--primary)', ...titleStyle }}>{title}</div>}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>{right}</div>
     </div>
   );
 }
@@ -453,5 +492,5 @@ Object.assign(window, {
   LETTER_SOUNDS, LV_ALPHABET, BLEND_WORDS,
   pickDistractors, pickWordDistractors, pickLetterDistractors, shuffle,
   Sparkle, SparkleField, Fairy, SpeechBubble, StarCount,
-  Meadow, Butterflies, Rainbow,
+  Meadow, Butterflies, Rainbow, IconBtn, TopBar,
 });

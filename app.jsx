@@ -35,6 +35,17 @@ function loadMusicOn() {
   try { return localStorage.getItem(MUSIC_KEY) !== 'off'; } catch (e) { return true; }
 }
 
+// ── companion card (the collectible the child picked as a buddy) ──
+// Stores the chapter id; the image is derived so card-art reshuffles
+// can't break it, and it only shows while that chapter stays unlocked.
+const COMPANION_KEY = 'burtu-feja-companion';
+function loadCompanion() {
+  try {
+    const v = parseInt(localStorage.getItem(COMPANION_KEY), 10);
+    return Number.isFinite(v) ? v : null;
+  } catch (e) { return null; }
+}
+
 // ── rest-timer session (survives reloads so the budget can't be bypassed) ──
 // One "sitting" of play: { playedMs, lastTickTs, sleepUntil }. The budget
 // resets when the fairy has finished her rest or when the app sat unused
@@ -195,20 +206,16 @@ function App() {
     }
   }
 
-  const [scale, setScale] = useS(1);
-  const [vpH, setVpH] = useS('100vh');
   useE(() => {
-    // Scale the 402×874 canvas to fit the *visible* viewport (no frame).
-    // On mobile the browser toolbar makes the visual viewport shorter than
-    // window.innerHeight; sizing to innerHeight pushed the bottom row (answer
-    // choices) below the visible area. Using visualViewport.height — and
-    // matching the canvas container height to it — keeps everything on screen.
+    // Keep --app-h matched to the *visible* viewport. On mobile the browser
+    // toolbar makes the visual viewport shorter than window.innerHeight;
+    // sizing to innerHeight pushed the bottom row (answer choices) below the
+    // visible area. Every screen derives its height from this CSS var
+    // (fallback: 100dvh), so the layout always stays on screen.
     const f = () => {
       const vv = window.visualViewport;
       const h = vv ? vv.height : window.innerHeight;
-      const w = vv ? vv.width : window.innerWidth;
-      setScale(Math.min(h / 874, w / 402));
-      setVpH(h + 'px');
+      document.documentElement.style.setProperty('--app-h', h + 'px');
     };
     f();
     window.addEventListener('resize', f);
@@ -225,6 +232,17 @@ function App() {
   const [currentId, setCurrentId] = useS(SAVED ? SAVED.currentId : 1);
   const [levelStars, setLevelStars] = useS(SAVED ? SAVED.levelStars : {});
   const [totalStars, setTotalStars] = useS(SAVED ? SAVED.totalStars : 0);
+
+  // chosen companion card — only valid while its chapter is still unlocked
+  const [companionId, setCompanionId] = useS(loadCompanion);
+  useE(() => {
+    try {
+      if (companionId == null) localStorage.removeItem(COMPANION_KEY);
+      else localStorage.setItem(COMPANION_KEY, String(companionId));
+    } catch (e) {}
+  }, [companionId]);
+  const companionCh = CHAPTERS.find(c => c.id === companionId);
+  const companionSrc = (companionCh && companionCh.endId < currentId) ? companionCh.card : null;
 
   // persist whenever progress changes
   useE(() => {
@@ -305,6 +323,7 @@ function App() {
   // wipe all progress and begin again from level 1
   function startOver() {
     setCurrentId(1); setLevelStars({}); setTotalStars(0);
+    setCompanionId(null); // the buddy card is locked again
     setActiveLevel(LEVELS[0]); setActiveChapter(CHAPTERS[0]);
     try { localStorage.removeItem(PROGRESS_KEY); } catch (e) {}
   }
@@ -338,16 +357,16 @@ function App() {
   const accent = HUES[activeLevel.hue];
 
   let body = null;
-  if (screen === 'welcome') body = <Welcome onStart={() => setScreen('hub')} musicOn={musicOn} onToggleMusic={toggleMusic} />;
-  else if (screen === 'hub') body = <GamesHub totalStars={totalStars} onPick={launchGame} onRandom={() => launchRandom('hub')} musicOn={musicOn} onToggleMusic={toggleMusic} />;
+  if (screen === 'welcome') body = <Welcome onStart={() => setScreen('hub')} musicOn={musicOn} onToggleMusic={toggleMusic} companion={companionSrc} />;
+  else if (screen === 'hub') body = <GamesHub totalStars={totalStars} onPick={launchGame} onRandom={() => launchRandom('hub')} musicOn={musicOn} onToggleMusic={toggleMusic} companion={companionSrc} />;
   else if (screen === 'chapters') body = <ChapterSelect chapters={CHAPTERS} currentId={currentId} levelStars={levelStars} totalStars={totalStars} onPick={pickChapter} onBack={() => setScreen('hub')} musicOn={musicOn} onToggleMusic={toggleMusic} />;
-  else if (screen === 'cards') body = <CardGallery chapters={CHAPTERS} currentId={currentId} onBack={() => setScreen('hub')} musicOn={musicOn} onToggleMusic={toggleMusic} />;
-  else if (screen === 'map') body = <FairyMap chapter={activeChapter} currentId={currentId} levelStars={levelStars} totalStars={totalStars} onPlay={startLevel} onStartOver={startOver} onRandom={() => launchRandom('map')} onBack={() => setScreen('chapters')} onShowCards={openCards} musicOn={musicOn} onToggleMusic={toggleMusic} />;
+  else if (screen === 'cards') body = <CardGallery chapters={CHAPTERS} currentId={currentId} onBack={() => setScreen('hub')} musicOn={musicOn} onToggleMusic={toggleMusic} companionId={companionId} onChooseCompanion={setCompanionId} />;
+  else if (screen === 'map') body = <FairyMap chapter={activeChapter} currentId={currentId} levelStars={levelStars} totalStars={totalStars} onPlay={startLevel} onStartOver={startOver} onRandom={() => launchRandom('map')} onBack={() => setScreen('chapters')} onShowCards={openCards} musicOn={musicOn} onToggleMusic={toggleMusic} companion={companionSrc} />;
   else if (screen === 'random') body = <RandomWords words={unlockedWords} onExit={() => setScreen(randomReturn)} onShowCards={openCards} restPending={restPending} onWordSeen={() => setSessionWords(w => w + 1)} musicOn={musicOn} onToggleMusic={toggleMusic} />;
   else if (screen === 'game') body = (
     <SyllableGame
       key={activeLevel.id + '-' + qPos + '-' + mode}
-      wordKey={queue[qPos]} mode={mode} scale={scale} accent={accent}
+      wordKey={queue[qPos]} mode={mode} accent={accent}
       progress={{ index: qPos, total: queue.length }}
       onWin={onWordWin} onExit={() => setScreen('map')} onShowCards={openCards}
       musicOn={musicOn} onToggleMusic={toggleMusic} />
@@ -367,7 +386,7 @@ function App() {
       onDone={onGameRoundDone} onExit={() => setScreen('hub')} onWordDone={handleWordDone}
       onShowCards={openCards} musicOn={musicOn} onToggleMusic={toggleMusic} />
   );
-  else if (screen === 'reward') body = <RewardScreen starsEarned={earned} totalStars={totalStars} newTreasure={newTreasure} newCard={newCard} onContinue={onRewardContinue} />;
+  else if (screen === 'reward') body = <RewardScreen starsEarned={earned} totalStars={totalStars} newTreasure={newTreasure} newCard={newCard} onContinue={onRewardContinue} companion={companionSrc} />;
   else if (screen === 'goodnight') body = <GoodnightScreen sessionWords={sessionWords} sessionStars={sessionStars} onGoodnight={onGoodnight} />;
   else if (screen === 'sleep') body = <SleepScreen sleepUntil={session.sleepUntil} cooldownMs={COOLDOWN_MS} onWake={onWake} onShowCards={openCards} />;
 
@@ -378,21 +397,14 @@ function App() {
 
   return (
     <div style={{
-      ...cssVars, width: '100vw', height: vpH, overflow: 'hidden',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      ...cssVars, width: '100%', height: 'var(--app-h, 100dvh)', position: 'relative',
+      overflow: 'hidden',
       background: 'linear-gradient(180deg, var(--bg1) 0%, var(--bg2) 100%)',
     }}>
-      {/* Full-bleed app canvas — the 402×874 design scaled up to fill the
-          screen edge-to-edge (no device frame). */}
-      <div style={{
-        width: 402, height: 874, position: 'relative', overflow: 'hidden',
-        transform: `scale(${scale})`, transformOrigin: 'center',
-      }}>
-        <div style={{ position: 'absolute', inset: 0 }}>{body}</div>
-        {cardsOpen && <CardPeek chapters={CHAPTERS} currentId={currentId} onClose={() => setCardsOpen(false)} />}
-        {tiredToast && <TiredToast />}
-        {milestone && <MilestonePopup n={milestone.n} src={milestone.src} exiting={milestone.exiting} />}
-      </div>
+      <div style={{ position: 'absolute', inset: 0 }}>{body}</div>
+      {cardsOpen && <CardPeek chapters={CHAPTERS} currentId={currentId} onClose={() => setCardsOpen(false)} />}
+      {tiredToast && <TiredToast />}
+      {milestone && <MilestonePopup n={milestone.n} src={milestone.src} exiting={milestone.exiting} />}
 
       <TweaksPanel title="Tweaks">
         <TweakSection label="Nodarbības veids" />

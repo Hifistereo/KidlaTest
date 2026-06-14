@@ -119,7 +119,7 @@ function ReadFindGame({ words, accent, onDone, onExit, onWordDone, musicOn, onTo
       <div style={{ flex: 1 }} />
 
       {/* picture choices */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, padding: '0 26px 36px' }}>
+      <div className="pic-grid">
         {opts.current.map((k, i) => (
           <PicTile key={i} wordKey={k} accent={accent}
             wrong={wrongKey === k} dim={won && k !== word} onPick={() => pick(k)} />
@@ -183,10 +183,10 @@ function FirstLetterGame({ words, accent, onDone, onExit, onWordDone, musicOn, o
       <div style={{ flex: 1 }} />
 
       {/* letter choices */}
-      <div style={{ display: 'flex', gap: 16, justifyContent: 'center', padding: '0 22px 40px' }}>
+      <div style={{ display: 'flex', gap: 16, justifyContent: 'center', padding: '0 22px calc(40px + var(--safe-bottom, 0px))' }}>
         {opts.current.map((l, i) => (
           <div key={i} className="tile" onClick={() => pick(l)} style={{
-            width: 92, height: 92, borderRadius: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 'clamp(72px, 20vw, 100px)', aspectRatio: '1 / 1', borderRadius: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: (won && l === first) ? accent[0] : 'var(--surface)',
             boxShadow: (won && l === first) ? `0 6px 0 ${accent[1]}` : '0 6px 0 rgba(150,110,150,.22), 0 9px 16px rgba(140,90,130,.14)',
             animation: wrong === l ? 'shake .5s' : 'none',
@@ -292,7 +292,11 @@ function BlendGame({ words, accent, onDone, onExit, onWordDone, musicOn, onToggl
       <div style={{ flex: 1 }} />
 
       {/* picture choices */}
-      <div style={{ display: 'flex', gap: 14, justifyContent: 'center', padding: '0 22px 38px' }}>
+      <div style={{
+        display: 'flex', gap: 14, justifyContent: 'center',
+        width: '100%', maxWidth: 480, margin: '0 auto',
+        padding: '0 22px calc(38px + var(--safe-bottom, 0px))',
+      }}>
         {opts.current.map((k, i) => (
           <div key={i} style={{ flex: '1 1 0', maxWidth: 130 }}>
             <PicTile wordKey={k} accent={accent} wrong={wrongKey === k} dim={won && k !== word} onPick={() => pick(k)} />

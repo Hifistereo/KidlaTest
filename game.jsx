@@ -111,18 +111,19 @@ function ProgressDots({ index, total }) {
 // Shared shell: top bar, sparkles, and win overlay for lesson and hub games.
 function GameFrame({ onExit, index, total, won, musicOn, onToggleMusic, onShowCards, children }) {
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div className="screen">
       <SparkleField count={7} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '64px 20px 0' }}>
-        <button onClick={onExit} className="kid-btn ghost" style={{ width: 46, height: 46, fontSize: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>‹</button>
-        <ProgressDots index={index} total={total} />
-        {onShowCards && (
-          <button onClick={onShowCards} className="kid-btn ghost" aria-label="Manas kartiņas" title="Manas kartiņas"
-            style={{ width: 44, height: 44, fontSize: 19, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>🎴</button>
-        )}
-        {onToggleMusic ? <MusicButton on={musicOn} onToggle={onToggleMusic} /> : <div style={{ width: 46 }} />}
-      </div>
-      {children}
+      <TopBar game
+        left={<>
+          <IconBtn onClick={onExit} label="Iziet" fontSize={22}>‹</IconBtn>
+          <ProgressDots index={index} total={total} />
+        </>}
+        right={<>
+          {onShowCards && <IconBtn onClick={onShowCards} label="Manas kartiņas" fontSize={19}>🎴</IconBtn>}
+          {onToggleMusic && <MusicButton on={musicOn} onToggle={onToggleMusic} />}
+        </>}
+      />
+      <div className="game-col">{children}</div>
       {won && <WinBurst />}
     </div>
   );
@@ -133,7 +134,8 @@ function WordPictureCard({ wordKey, data, accent, won, paddingTop = 14 }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'center', paddingTop }}>
       <div onClick={() => playWord(wordKey)} style={{
-        width: 156, height: 156, borderRadius: 40, background: 'var(--surface)',
+        '--pic': 'min(156px, calc(var(--app-h, 100dvh) * 0.22))',
+        width: 'var(--pic)', height: 'var(--pic)', borderRadius: 40, background: 'var(--surface)',
         boxShadow: '0 14px 30px rgba(140,90,130,.18)', display: 'flex',
         alignItems: 'center', justifyContent: 'center', position: 'relative', cursor: 'pointer',
         animation: won ? 'bob .6s ease-in-out infinite' : 'floaty-slow 4s ease-in-out infinite',
@@ -142,14 +144,14 @@ function WordPictureCard({ wordKey, data, accent, won, paddingTop = 14 }) {
           position: 'absolute', inset: 14, borderRadius: 30,
           background: `radial-gradient(circle at 50% 40%, ${accent[0]} 0%, transparent 72%)`, opacity: .5,
         }} />
-        <div style={{ fontSize: 86, lineHeight: 1, position: 'relative', filter: 'drop-shadow(0 4px 6px rgba(140,90,130,.25))' }}>{wordData.pic}</div>
+        <div style={{ fontSize: 'calc(var(--pic) * 0.55)', lineHeight: 1, position: 'relative', filter: 'drop-shadow(0 4px 6px rgba(140,90,130,.25))' }}>{wordData.pic}</div>
         <div style={{ position: 'absolute', bottom: 10, right: 10, width: 36, height: 36, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, boxShadow: '0 3px 8px rgba(140,90,130,.3)' }}>🔊</div>
       </div>
     </div>
   );
 }
 
-function SyllableGame({ wordKey, mode, scale, accent, progress, onWin, onExit, onWordDone, musicOn, onToggleMusic, onShowCards }) {
+function SyllableGame({ wordKey, mode, accent, progress, onWin, onExit, onWordDone, musicOn, onToggleMusic, onShowCards }) {
   const data = WORDS[wordKey];
   const answer = data.syll;
   const n = answer.length;
@@ -283,7 +285,9 @@ function SyllableGame({ wordKey, mode, scale, accent, progress, onWin, onExit, o
         ref={el => slotRefs.current[i] = el}
         onClick={() => { if (!isChoose && filled !== null) removeSlot(i); }}
         style={{
-          flex: '1 1 0', minWidth: 0, maxWidth: n >= 3 ? 108 : 150, height: n >= 3 ? 86 : 100,
+          flex: '1 1 0', minWidth: 0,
+          maxWidth: n >= 3 ? 'clamp(86px, 24vw, 120px)' : 'clamp(110px, 30vw, 160px)',
+          height: n >= 3 ? 'min(86px, calc(var(--app-h, 100dvh) * 0.17))' : 'min(100px, calc(var(--app-h, 100dvh) * 0.19))',
           borderRadius: 22, display: 'flex', alignItems: 'center', justifyContent: 'center',
           background: hasContent ? accent[0] : 'rgba(255,255,255,.5)',
           border: hasContent ? 'none' : '3px dashed rgba(150,110,150,.4)',
@@ -306,7 +310,7 @@ function SyllableGame({ wordKey, mode, scale, accent, progress, onWin, onExit, o
     const common = {
       className: 'tile',
       style: {
-        minWidth: 74, height: 74, padding: '0 16px', borderRadius: 20,
+        minWidth: 'clamp(64px, 16vw, 84px)', height: 74, padding: '0 16px', borderRadius: 20,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: 'var(--surface)',
         boxShadow: '0 6px 0 rgba(150,110,150,.22), 0 9px 16px rgba(140,90,130,.14)',
@@ -348,7 +352,7 @@ function SyllableGame({ wordKey, mode, scale, accent, progress, onWin, onExit, o
       <div style={{ flex: 1 }} />
 
       {/* tray / options */}
-      <div style={{ padding: '0 22px 30px' }}>
+      <div style={{ padding: '0 22px calc(min(30px, var(--app-h, 100dvh) * 0.035) + var(--safe-bottom, 0px))' }}>
         {mode === 'choose' ? (
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             {opts.current.map((s, i) => (
@@ -365,8 +369,8 @@ function SyllableGame({ wordKey, mode, scale, accent, progress, onWin, onExit, o
           </div>
         ) : (
           <div style={{
-            background: 'rgba(255,255,255,.4)', borderRadius: 28, padding: '18px 16px',
-            display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', minHeight: 92,
+            background: 'rgba(255,255,255,.4)', borderRadius: 28, padding: 'min(18px, calc(var(--app-h, 100dvh) * 0.02)) 16px',
+            display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', minHeight: 'min(92px, calc(var(--app-h, 100dvh) * 0.2))',
             boxShadow: 'inset 0 2px 10px rgba(140,90,130,.06)',
           }}>
             {tiles.current.map(renderTile)}
@@ -378,7 +382,7 @@ function SyllableGame({ wordKey, mode, scale, accent, progress, onWin, onExit, o
       {drag && drag.moved && (
         <div style={{
           position: 'fixed', left: drag.x, top: drag.y, zIndex: 9999, pointerEvents: 'none',
-          transform: `translate(-50%,-50%) scale(${scale || 1})`,
+          transform: 'translate(-50%,-50%)',
         }}>
           <div style={{
             minWidth: 74, height: 74, padding: '0 16px', borderRadius: 20,
