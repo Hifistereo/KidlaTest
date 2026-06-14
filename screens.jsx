@@ -444,16 +444,16 @@ function Welcome({ onStart, musicOn, onToggleMusic, companion }) {
 // GAMES HUB — pick a game. The journey (map) is one card; the rest are
 // phonics/reading practice rounds drawn from the child's unlocked words.
 // ─────────────────────────────────────────────────────────────
-function GamesHub({ totalStars, onPick, onRandom, musicOn, onToggleMusic, companion }) {
+function GamesHub({ totalStars, onPick, musicOn, onToggleMusic, companion }) {
   const CARDS = [
     { key: 'map',         icon: '🗺️', hue: 'lilac', title: 'Ceļojums',      sub: 'Saliec vārdus no zilbēm' },
     { key: 'readfind',    icon: '🔎', hue: 'sky',   title: 'Atrodi attēlu',  sub: 'Izlasi vārdu, atrodi bildi' },
     { key: 'firstletter', icon: '🔤', hue: 'mint',  title: 'Pirmais burts',  sub: 'Ar kuru burtu sākas?' },
     { key: 'blend',       icon: '🔊', hue: 'peach', title: 'Skaņas',         sub: 'Klausies un saliec vārdu' },
-    { key: 'random',      icon: '🎲', hue: 'gold',  title: 'Jaukti vārdi',   sub: 'Brīva atkārtošana' },
+    { key: 'mixed',       icon: '🎲', hue: 'gold',  title: 'Jaukti vārdi',   sub: 'Saliec sajauktus vārdus' },
     { key: 'cards',       icon: '🎴', hue: 'rose',  title: 'Manas kartiņas', sub: 'Kolekcija un tavs draugs' },
   ];
-  const handle = (k) => (k === 'random' ? onRandom() : onPick(k));
+  const handle = (k) => onPick(k);
 
   return (
     <div className="screen">
@@ -814,84 +814,9 @@ function FairyMap({ chapter, currentId, levelStars, totalStars, onPlay, onStartO
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// RANDOM WORDS (free review of unlocked words)
-// ─────────────────────────────────────────────────────────────
-function RandomWords({ words, onExit, musicOn, onToggleMusic, onShowCards, restPending, onWordSeen }) {
-  const list = words && words.length ? words : Object.keys(WORDS).slice(0, 1);
-  const randomWord = (avoid) => {
-    if (list.length <= 1) return list[0];
-    let w = list[Math.floor(Math.random() * list.length)], g = 0;
-    while (w === avoid && g++ < 12) w = list[Math.floor(Math.random() * list.length)];
-    return w;
-  };
-  const [word, setWord] = useSt(() => randomWord(null));
-
-  // speak the word whenever a new one is shown
-  useEf(() => { playWord(word); }, [word]);
-
-  // when the rest limit hit, finish the current word, then exit instead of
-  // dealing a new one (App turns the exit into the goodnight scene)
-  const next = () => {
-    if (restPending) { onExit(); return; }
-    if (onWordSeen) onWordSeen();
-    setWord(randomWord(word));
-  };
-
-  const data = WORDS[word] || {};
-  const hueKeys = Object.keys(HUES);
-
-  return (
-    <div className="screen">
-      <Sky />
-      <SparkleField count={6} />
-      <Meadow />
-
-      <TopBar game
-        left={<button onClick={onExit} className="kid-btn ghost" style={{ padding: '10px 20px', fontSize: 17, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>‹ Iziet</button>}
-        title="Jaukti vārdi 🎲" titleStyle={{ color: 'var(--ink)' }}
-        right={<>
-          {onShowCards && <IconBtn onClick={onShowCards} label="Manas kartiņas" fontSize={19}>🎴</IconBtn>}
-          {onToggleMusic && <MusicButton on={musicOn} onToggle={onToggleMusic} />}
-        </>}
-      />
-
-      <div className="game-col" style={{ zIndex: 5 }}>
-      {/* center: picture + word + syllables */}
-      <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 28px' }}>
-        <div onClick={() => playWord(word)} style={{
-          '--pic': 'min(184px, calc(var(--app-h, 100dvh) * 0.26))',
-          width: 'var(--pic)', height: 'var(--pic)', borderRadius: 46, background: 'var(--surface)',
-          boxShadow: '0 14px 30px rgba(140,90,130,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          position: 'relative', cursor: 'pointer', animation: 'floaty-slow 4s ease-in-out infinite',
-        }}>
-          <div style={{ fontSize: 'calc(var(--pic) * 0.56)', lineHeight: 1, position: 'relative', filter: 'drop-shadow(0 4px 6px rgba(140,90,130,.25))' }}>{data.pic}</div>
-          <div style={{ position: 'absolute', bottom: 12, right: 12, width: 38, height: 38, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, boxShadow: '0 3px 8px rgba(140,90,130,.3)' }}>🔊</div>
-        </div>
-
-        <div className="display" style={{ marginTop: 26, fontSize: 40, fontWeight: 600, color: 'var(--primary)', letterSpacing: 1 }}>{word}</div>
-
-        <div style={{ display: 'flex', gap: 9, marginTop: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
-          {(data.syll || []).map((s, i) => {
-            const c = HUES[hueKeys[i % hueKeys.length]];
-            return (
-              <div key={i} className="display" style={{
-                background: c[0], color: '#fff', padding: '10px 18px', borderRadius: 18,
-                fontSize: 28, fontWeight: 600, boxShadow: `0 5px 0 ${c[1]}`,
-              }}>{s}</div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* next button */}
-      <div style={{ position: 'relative', padding: '0 22px calc(40px + var(--safe-bottom, 0px))' }}>
-        <button onClick={next} className="kid-btn" style={{ width: '100%', padding: '18px', fontSize: 24, fontWeight: 600 }}>Nākamais ▸</button>
-      </div>
-      </div>
-    </div>
-  );
-}
+// RandomWords (the old passive free-review) was removed: "Jaukti vārdi" is now
+// a real syllable-building round (MixedWordsGame in games.jsx) over a shuffled
+// easy+hard word mix.
 
 // ─────────────────────────────────────────────────────────────
 // REWARD / CELEBRATION
@@ -994,6 +919,6 @@ function RewardScreen({ starsEarned, totalStars, newTreasure, newCard, onContinu
 }
 
 Object.assign(window, {
-  Sky, MusicButton, MilestonePopup, Welcome, GamesHub, ChapterSelect, CardGallery, FairyMap, RewardScreen, RandomWords,
+  Sky, MusicButton, MilestonePopup, Welcome, GamesHub, ChapterSelect, CardGallery, FairyMap, RewardScreen,
   TiredToast, NightSky, GoodnightScreen, SleepScreen, CardPeek, CardDetail, CardTile,
 });

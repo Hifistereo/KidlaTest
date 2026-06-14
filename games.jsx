@@ -26,6 +26,24 @@ function buildRound(pool, size, fallback) {
   return list.length ? list : [fb[0] || Object.keys(WORDS)[0]];
 }
 
+// build a round that deliberately MIXES short (≤2 syllable) and long (≥3
+// syllable) words, drawn from the whole word set — so the child practises easy
+// and harder words together instead of grinding the journey's all-easy-then-
+// all-hard order. Takes ~half from each bucket, padding from the other if one
+// runs short, then shuffles so the order is random but the mix is balanced.
+function buildMixedRound(size) {
+  const all = Object.keys(WORDS);
+  const short = shuffle(all.filter(w => (WORDS[w].syll || []).length <= 2));
+  const long = shuffle(all.filter(w => (WORDS[w].syll || []).length >= 3));
+  const want = { long: Math.floor(size / 2), short: Math.ceil(size / 2) };
+  const out = [...short.slice(0, want.short), ...long.slice(0, want.long)];
+  // top up from whichever bucket has leftovers if one was too small
+  const rest = shuffle([...short.slice(want.short), ...long.slice(want.long)]);
+  for (const w of rest) { if (out.length >= size) break; out.push(w); }
+  const list = shuffle(out).slice(0, Math.min(size, out.length));
+  return list.length ? list : [all[0]];
+}
+
 // a single picture-choice tile
 function PicTile({ wordKey, accent, wrong, dim, onPick }) {
   const data = WORDS[wordKey] || {};
@@ -307,4 +325,38 @@ function BlendGame({ words, accent, onDone, onExit, onWordDone, musicOn, onToggl
   );
 }
 
-Object.assign(window, { ReadFindGame, FirstLetterGame, BlendGame, GameFrame: window.GameFrame });
+// ─────────────────────────────────────────────────────────────
+// JAUKTI VĀRDI — the journey's build-from-syllables game, but over a
+// shuffled round that mixes short and long words (buildMixedRound). Wraps the
+// shared SyllableGame; earns stars like the other hub games (onDone) without
+// touching journey progress.
+// ─────────────────────────────────────────────────────────────
+function MixedWordsGame({ mode, onDone, onExit, onWordDone, musicOn, onToggleMusic, onShowCards }) {
+  const SharedSyllableGame = window.SyllableGame;
+  const round = useRefP(null);
+  if (!round.current) round.current = buildMixedRound(ROUND_SIZE);
+  const list = round.current;
+  const [idx, setIdx] = useStateP(0);
+  const ratings = useRefP([]);
+  const advance = (stars) => {
+    ratings.current = [...ratings.current, stars];
+    if (idx < list.length - 1) setIdx(idx + 1);
+    else {
+      const rs = ratings.current;
+      onDone(Math.max(1, Math.round(rs.reduce((a, b) => a + b, 0) / rs.length)));
+    }
+  };
+  const hueVals = Object.values(HUES);
+  const accent = hueVals[idx % hueVals.length];
+
+  return (
+    <SharedSyllableGame
+      key={list[idx] + '-' + idx}
+      wordKey={list[idx]} mode={mode} accent={accent}
+      progress={{ index: idx, total: list.length }}
+      onWin={advance} onWordDone={onWordDone} onExit={onExit} onShowCards={onShowCards}
+      musicOn={musicOn} onToggleMusic={onToggleMusic} />
+  );
+}
+
+Object.assign(window, { ReadFindGame, FirstLetterGame, BlendGame, MixedWordsGame, GameFrame: window.GameFrame });

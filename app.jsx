@@ -1,8 +1,8 @@
 // app.jsx — root: state machine, device scaling, theming, tweaks
 const { useState: useS, useEffect: useE, useRef: useR } = React;
-const { Welcome, GamesHub, ChapterSelect, CardGallery, FairyMap, RewardScreen, RandomWords, MilestonePopup } = window;
+const { Welcome, GamesHub, ChapterSelect, CardGallery, FairyMap, RewardScreen, MilestonePopup } = window;
 const { TiredToast, GoodnightScreen, SleepScreen, CardPeek } = window;
-const { SyllableGame, ReadFindGame, FirstLetterGame, BlendGame } = window;
+const { SyllableGame, ReadFindGame, FirstLetterGame, BlendGame, MixedWordsGame } = window;
 
 // number of milestone character images in images/milestones/ (01.png … NN.png)
 const MILESTONE_IMAGES = 16;
@@ -82,7 +82,7 @@ function App() {
   useE(() => {
     const bg = new Audio('audio/background5min.mp3');
     bg.loop = true;
-    bg.volume = 0.20; // background music at 20%; voice and letter clips stay at full volume
+    bg.volume = 0.04; // background music at 4%; voice and letter clips stay at full volume
     bgRef.current = bg;
     const start = () => {
       window.removeEventListener('pointerdown', start);
@@ -332,7 +332,6 @@ function App() {
   const unlockedWords = LEVELS.filter(lv => lv.id <= currentId).map(lv => lv.word);
 
   // ── hub navigation ──
-  const [randomReturn, setRandomReturn] = useS('hub');
   const [gameNonce, setGameNonce] = useS(0); // forces a fresh round on each launch
   function launchGame(target) {
     if (target === 'map') { setScreen('chapters'); return; }
@@ -341,7 +340,6 @@ function App() {
     setScreen(target);
   }
   function pickChapter(ch) { setActiveChapter(ch); setScreen('map'); }
-  function launchRandom(from) { setRandomReturn(from); setScreen('random'); }
 
   // accent colors for the hub games (match the GamesHub card hues)
   const GAME_ACCENT = { readfind: HUES.sky, firstletter: HUES.mint, blend: HUES.peach };
@@ -358,11 +356,15 @@ function App() {
 
   let body = null;
   if (screen === 'welcome') body = <Welcome onStart={() => setScreen('hub')} musicOn={musicOn} onToggleMusic={toggleMusic} companion={companionSrc} />;
-  else if (screen === 'hub') body = <GamesHub totalStars={totalStars} onPick={launchGame} onRandom={() => launchRandom('hub')} musicOn={musicOn} onToggleMusic={toggleMusic} companion={companionSrc} />;
+  else if (screen === 'hub') body = <GamesHub totalStars={totalStars} onPick={launchGame} musicOn={musicOn} onToggleMusic={toggleMusic} companion={companionSrc} />;
   else if (screen === 'chapters') body = <ChapterSelect chapters={CHAPTERS} currentId={currentId} levelStars={levelStars} totalStars={totalStars} onPick={pickChapter} onBack={() => setScreen('hub')} musicOn={musicOn} onToggleMusic={toggleMusic} />;
   else if (screen === 'cards') body = <CardGallery chapters={CHAPTERS} currentId={currentId} onBack={() => setScreen('hub')} musicOn={musicOn} onToggleMusic={toggleMusic} companionId={companionId} onChooseCompanion={setCompanionId} />;
-  else if (screen === 'map') body = <FairyMap chapter={activeChapter} currentId={currentId} levelStars={levelStars} totalStars={totalStars} onPlay={startLevel} onStartOver={startOver} onRandom={() => launchRandom('map')} onBack={() => setScreen('chapters')} onShowCards={openCards} musicOn={musicOn} onToggleMusic={toggleMusic} companion={companionSrc} />;
-  else if (screen === 'random') body = <RandomWords words={unlockedWords} onExit={() => setScreen(randomReturn)} onShowCards={openCards} restPending={restPending} onWordSeen={() => setSessionWords(w => w + 1)} musicOn={musicOn} onToggleMusic={toggleMusic} />;
+  else if (screen === 'map') body = <FairyMap chapter={activeChapter} currentId={currentId} levelStars={levelStars} totalStars={totalStars} onPlay={startLevel} onStartOver={startOver} onRandom={() => launchGame('mixed')} onBack={() => setScreen('chapters')} onShowCards={openCards} musicOn={musicOn} onToggleMusic={toggleMusic} companion={companionSrc} />;
+  else if (screen === 'mixed') body = (
+    <MixedWordsGame key={'mx' + gameNonce} mode={mode}
+      onDone={onGameRoundDone} onExit={() => setScreen('hub')} onWordDone={handleWordDone}
+      onShowCards={openCards} musicOn={musicOn} onToggleMusic={toggleMusic} />
+  );
   else if (screen === 'game') body = (
     <SyllableGame
       key={activeLevel.id + '-' + qPos + '-' + mode}
@@ -435,6 +437,7 @@ function App() {
         <TweakButton label="Atrodi attēlu" onClick={() => { setGameNonce(n => n + 1); preview('readfind'); }} />
         <TweakButton label="Pirmais burts" onClick={() => { setGameNonce(n => n + 1); preview('firstletter'); }} />
         <TweakButton label="Skaņas" onClick={() => { setGameNonce(n => n + 1); preview('blend'); }} />
+        <TweakButton label="Jaukti vārdi" onClick={() => { setGameNonce(n => n + 1); preview('mixed'); }} />
         <TweakButton label="Balva" onClick={() => preview('reward')} />
         <TweakButton label="Sērijas balva" onClick={() => { streakRef.current = STREAK_STEP - 1; handleWordDone(true); }} />
         <TweakButton label="Labunakts ekrāns" onClick={() => preview('goodnight')} />
