@@ -1,5 +1,5 @@
 // data.jsx — palettes, Latvian word data, levels, shared decorations
-const { useState, useEffect, useRef } = React;
+const { useRef } = React;
 
 // ─────────────────────────────────────────────────────────────
 // Color themes (warm cozy pastels). Applied as CSS vars on the screen root.
