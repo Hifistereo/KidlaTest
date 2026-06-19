@@ -496,7 +496,10 @@ function App() {
         <TweakButton label="Miega ekrāns" onClick={() => preview('sleep')} />
 
         <TweakSection label="Vecāku skats" />
-        <TweakButton label="Vecāku panelis" onClick={() => setScreen('parentDash')} />
+        <TweakButton label="Vecāku panelis" onClick={() => {
+          setScreen('parentDash');
+          window.dispatchEvent(new MessageEvent('message', { data: { type: '__deactivate_edit_mode' } }));
+        }} />
       </TweaksPanel>
     </div>
   );
