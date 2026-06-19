@@ -1,4 +1,7 @@
-// screens.jsx — Welcome, FairyMap (level select), RewardScreen
+// screens.jsx — all full-screen views: Welcome, GamesHub, ChapterSelect,
+// CardGallery, FairyMap (level select), RewardScreen, the rest-timer screens
+// (TiredToast / GoodnightScreen / SleepScreen), card overlays, MilestonePopup,
+// MusicButton, and the ParentDashboard.
 const { useState: useSt, useEffect: useEf, useRef: useRf } = React;
 
 // ── soft sky gradient backdrop used on every screen ──
@@ -453,7 +456,6 @@ function GamesHub({ totalStars, onPick, musicOn, onToggleMusic, companion }) {
     { key: 'mixed',       icon: '🎲', hue: 'gold',  title: 'Jaukti vārdi',   sub: 'Saliec sajauktus vārdus' },
     { key: 'cards',       icon: '🎴', hue: 'rose',  title: 'Manas kartiņas', sub: 'Kolekcija un tavs draugs' },
   ];
-  const handle = (k) => onPick(k);
 
   return (
     <div className="screen">
@@ -477,7 +479,7 @@ function GamesHub({ totalStars, onPick, musicOn, onToggleMusic, companion }) {
         {CARDS.map((c, i) => {
           const accent = HUES[c.hue];
           return (
-            <button key={c.key} onClick={() => handle(c.key)} className="tile" style={{
+            <button key={c.key} onClick={() => onPick(c.key)} className="tile" style={{
               width: '100%', border: 'none', textAlign: 'left', position: 'relative', overflow: 'hidden',
               display: 'flex', alignItems: 'center', gap: 16, padding: '16px 18px', borderRadius: 26,
               background: 'var(--surface)', boxShadow: `0 7px 0 ${accent[1]}, 0 11px 20px rgba(140,90,130,.14)`,
@@ -769,7 +771,7 @@ function FairyMap({ chapter, currentId, levelStars, totalStars, onPlay, onStartO
                       : `0 8px 0 ${accent[1]}, 0 12px 20px rgba(140,90,130,.2)`,
                     cursor: state === 'locked' ? 'default' : 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 44, opacity: state === 'locked' ? 1 : 1,
+                    fontSize: 44,
                   }}>
                   {state === 'locked'
                     ? <span style={{ fontSize: 30, opacity: .5 }}>🔒</span>
@@ -1057,7 +1059,7 @@ function ParentDashboard({ history, currentId, levelStars, onBack }) {
                   )}
                   <div style={{
                     width: '100%', height: `${heightPct}%`, borderRadius: '4px 4px 0 0',
-                    background: isToday ? 'var(--primary)' : 'var(--primary)',
+                    background: 'var(--primary)',
                     opacity: mins > 0 ? (isToday ? 1 : 0.55) : 0.18,
                     transition: 'height .3s',
                   }} />

@@ -63,10 +63,9 @@ function PicTile({ wordKey, accent, wrong, dim, onPick }) {
 // ─────────────────────────────────────────────────────────────
 // shared round controller — handles word progression + star tally
 // ─────────────────────────────────────────────────────────────
-function useRound(pool, onDone, fallback) {
-  const round = useRefP(null);
-  if (!round.current) round.current = buildRound(pool, ROUND_SIZE, fallback);
-  const list = round.current;
+// drive a fixed word list: tracks position + per-word stars, then reports the
+// rounded average via onDone when the last word is answered.
+function useRoundList(list, onDone) {
   const [idx, setIdx] = useStateP(0);
   const ratings = useRefP([]);
   const advance = (stars) => {
@@ -78,6 +77,13 @@ function useRound(pool, onDone, fallback) {
     }
   };
   return { word: list[idx], idx, total: list.length, advance };
+}
+
+// build a round from the unlocked-word pool once, then drive it.
+function useRound(pool, onDone, fallback) {
+  const round = useRefP(null);
+  if (!round.current) round.current = buildRound(pool, ROUND_SIZE, fallback);
+  return useRoundList(round.current, onDone);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -342,29 +348,19 @@ function MixedWordsGame({ mode, onDone, onExit, onWordDone, onWordRecord, musicO
   const SharedSyllableGame = window.SyllableGame;
   const round = useRefP(null);
   if (!round.current) round.current = buildMixedRound(ROUND_SIZE);
-  const list = round.current;
-  const [idx, setIdx] = useStateP(0);
-  const ratings = useRefP([]);
-  const advance = (stars) => {
-    ratings.current = [...ratings.current, stars];
-    if (idx < list.length - 1) setIdx(idx + 1);
-    else {
-      const rs = ratings.current;
-      onDone(Math.max(1, Math.round(rs.reduce((a, b) => a + b, 0) / rs.length)));
-    }
-  };
+  const { word, idx, total, advance } = useRoundList(round.current, onDone);
   const hueVals = Object.values(HUES);
   const accent = hueVals[idx % hueVals.length];
 
   return (
     <SharedSyllableGame
-      key={list[idx] + '-' + idx}
-      wordKey={list[idx]} mode={mode} accent={accent}
-      progress={{ index: idx, total: list.length }}
+      key={word + '-' + idx}
+      wordKey={word} mode={mode} accent={accent}
+      progress={{ index: idx, total }}
       onWin={advance} onWordDone={onWordDone} onWordRecord={onWordRecord} gameType="mixed"
       onExit={onExit} onShowCards={onShowCards}
       musicOn={musicOn} onToggleMusic={onToggleMusic} />
   );
 }
 
-Object.assign(window, { ReadFindGame, FirstLetterGame, BlendGame, MixedWordsGame, GameFrame: window.GameFrame });
+Object.assign(window, { ReadFindGame, FirstLetterGame, BlendGame, MixedWordsGame });
