@@ -1,7 +1,7 @@
 // app.jsx — root: state machine, device scaling, theming, tweaks
 const { useState: useS, useEffect: useE, useRef: useR } = React;
 const { Welcome, GamesHub, ChapterSelect, CardGallery, FairyMap, RewardScreen, MilestonePopup } = window;
-const { TiredToast, GoodnightScreen, SleepScreen, CardPeek } = window;
+const { TiredToast, GoodnightScreen, SleepScreen, CardPeek, ParentDashboard } = window;
 const { SyllableGame, ReadFindGame, FirstLetterGame, BlendGame, MixedWordsGame } = window;
 
 // number of milestone character images in images/milestones/ (01.png … NN.png)
@@ -28,6 +28,32 @@ function loadProgress() {
   return null;
 }
 const SAVED = loadProgress();
+
+// ── session history (parent dashboard) ──
+const HISTORY_KEY = 'burtu-feja-history';
+const HISTORY_MAX = 90;
+function loadHistory() {
+  try { const r = localStorage.getItem(HISTORY_KEY); if (r) return JSON.parse(r); } catch (e) {}
+  return [];
+}
+function saveHistory(entries) {
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(entries)); } catch (e) {}
+}
+function mergeSessionIntoHistory(history, log, durationMs, levelAtEnd) {
+  const date = new Date().toISOString().slice(0, 10);
+  const sessionStars = log.reduce((s, w) => s + w.stars, 0);
+  const existing = history.find(e => e.date === date);
+  if (existing) {
+    existing.durationMs += durationMs;
+    existing.words = existing.words.concat(log);
+    existing.sessionStars += sessionStars;
+    existing.levelAtEnd = levelAtEnd;
+  } else {
+    history.push({ date, durationMs, words: log, sessionStars, levelAtEnd });
+  }
+  if (history.length > HISTORY_MAX) history.splice(0, history.length - HISTORY_MAX);
+  return history;
+}
 
 // ── background-music preference (on by default, survives reloads) ──
 const MUSIC_KEY = 'burtu-feja-music';
@@ -160,12 +186,19 @@ function App() {
   }, [restPending, screen]);
 
   function onGoodnight() {
+    const log = sessionLogRef.current;
+    if (log.length > 0 || session.playedMs > 0) {
+      const updated = mergeSessionIntoHistory(loadHistory(), log, session.playedMs, currentId);
+      saveHistory(updated);
+    }
+    sessionLogRef.current = [];
     setSession(s => ({ ...s, sleepUntil: Date.now() + COOLDOWN_MS }));
     setRestPending(false);
     setScreen('sleep');
   }
 
   function onWake() {
+    sessionLogRef.current = [];
     setSession({ playedMs: 0, lastTickTs: Date.now(), sleepUntil: 0 });
     warnRef.current = false;
     setTiredToast(false);
@@ -184,10 +217,15 @@ function App() {
   // run of first-try-correct words; every STREAK_STEP we flash a character
   // card for a moment, then it disappears. A mistake resets the run.
   const streakRef = useR(0);
+  const sessionLogRef = useR([]); // per-word records for parent dashboard history
   const [milestone, setMilestone] = useS(null); // { n, src, exiting }
   const milestoneTimers = useR([]);
   const clearMilestoneTimers = () => { milestoneTimers.current.forEach(clearTimeout); milestoneTimers.current = []; };
   useE(() => () => clearMilestoneTimers(), []);
+
+  function handleWordRecord(record) {
+    sessionLogRef.current = [...sessionLogRef.current, record];
+  }
 
   function handleWordDone(perfect) {
     setSessionWords(w => w + 1); // session recap for the goodnight screen
@@ -269,8 +307,9 @@ function App() {
     setActiveLevel(lv); setQPos(0); ratingsRef.current = []; setScreen('game');
   }
 
-  function onWordWin(stars) {
+  function onWordWin(stars, ms = 0) {
     ratingsRef.current = [...ratingsRef.current, stars];
+    sessionLogRef.current = [...sessionLogRef.current, { word: queue[qPos], game: 'syllable', stars, ms }];
     if (qPos < queue.length - 1) { setQPos(qPos + 1); }
     else { finishLesson(); }
   }
@@ -363,6 +402,7 @@ function App() {
   else if (screen === 'mixed') body = (
     <MixedWordsGame key={'mx' + gameNonce} mode={mode}
       onDone={onGameRoundDone} onExit={() => setScreen('hub')} onWordDone={handleWordDone}
+      onWordRecord={handleWordRecord}
       onShowCards={openCards} musicOn={musicOn} onToggleMusic={toggleMusic} />
   );
   else if (screen === 'game') body = (
@@ -376,21 +416,33 @@ function App() {
   else if (screen === 'readfind') body = (
     <ReadFindGame key={'rf' + gameNonce} words={unlockedWords} accent={GAME_ACCENT.readfind}
       onDone={onGameRoundDone} onExit={() => setScreen('hub')} onWordDone={handleWordDone}
+      onWordRecord={handleWordRecord}
       onShowCards={openCards} musicOn={musicOn} onToggleMusic={toggleMusic} />
   );
   else if (screen === 'firstletter') body = (
     <FirstLetterGame key={'fl' + gameNonce} words={unlockedWords} accent={GAME_ACCENT.firstletter}
       onDone={onGameRoundDone} onExit={() => setScreen('hub')} onWordDone={handleWordDone}
+      onWordRecord={handleWordRecord}
       onShowCards={openCards} musicOn={musicOn} onToggleMusic={toggleMusic} />
   );
   else if (screen === 'blend') body = (
     <BlendGame key={'bl' + gameNonce} words={unlockedWords} accent={GAME_ACCENT.blend}
       onDone={onGameRoundDone} onExit={() => setScreen('hub')} onWordDone={handleWordDone}
+      onWordRecord={handleWordRecord}
       onShowCards={openCards} musicOn={musicOn} onToggleMusic={toggleMusic} />
   );
   else if (screen === 'reward') body = <RewardScreen starsEarned={earned} totalStars={totalStars} newTreasure={newTreasure} newCard={newCard} onContinue={onRewardContinue} companion={companionSrc} />;
   else if (screen === 'goodnight') body = <GoodnightScreen sessionWords={sessionWords} sessionStars={sessionStars} onGoodnight={onGoodnight} />;
   else if (screen === 'sleep') body = <SleepScreen sleepUntil={session.sleepUntil} cooldownMs={COOLDOWN_MS} onWake={onWake} onShowCards={openCards} />;
+  else if (screen === 'parentDash') body = (
+    <ParentDashboard
+      history={loadHistory()}
+      currentId={currentId}
+      levelStars={levelStars}
+      totalStars={totalStars}
+      onBack={() => setScreen('hub')}
+    />
+  );
 
   const cssVars = {
     '--bg1': pal.bg1, '--bg2': pal.bg2, '--surface': pal.surface, '--surface2': pal.surface2,
@@ -442,6 +494,9 @@ function App() {
         <TweakButton label="Sērijas balva" onClick={() => { streakRef.current = STREAK_STEP - 1; handleWordDone(true); }} />
         <TweakButton label="Labunakts ekrāns" onClick={() => preview('goodnight')} />
         <TweakButton label="Miega ekrāns" onClick={() => preview('sleep')} />
+
+        <TweakSection label="Vecāku skats" />
+        <TweakButton label="Vecāku panelis" onClick={() => setScreen('parentDash')} />
       </TweaksPanel>
     </div>
   );

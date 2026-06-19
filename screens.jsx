@@ -918,7 +918,234 @@ function RewardScreen({ starsEarned, totalStars, newTreasure, newCard, onContinu
   );
 }
 
+// ─────────────────────────────────────────────────────────────
+// VECĀKU PANELIS — parent progress dashboard
+// Reads from burtu-feja-history (array of daily session summaries).
+// Accessed via Tweaks Panel → Vecāku panelis.
+// ─────────────────────────────────────────────────────────────
+
+function getLast7Days(history) {
+  const today = new Date();
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - (6 - i));
+    const key = d.toISOString().slice(0, 10);
+    return history.find(e => e.date === key) || null;
+  });
+}
+
+function getAccuracyTrend(history) {
+  const recent = history.slice(-6);
+  if (recent.length < 2) return 'stable';
+  const half = Math.floor(recent.length / 2);
+  const avg = arr => arr.length ? arr.reduce((s, w) => s + w.stars, 0) / arr.length : 0;
+  const diff = avg(recent.slice(half).flatMap(e => e.words)) -
+               avg(recent.slice(0, half).flatMap(e => e.words));
+  return diff > 0.2 ? 'up' : diff < -0.2 ? 'down' : 'stable';
+}
+
+function getStrugglingWords(history) {
+  const map = {};
+  history.flatMap(e => e.words).forEach(w => {
+    if (!map[w.word]) map[w.word] = { total: 0, count: 0 };
+    map[w.word].total += w.stars;
+    map[w.word].count++;
+  });
+  return Object.entries(map)
+    .filter(([, v]) => v.count >= 2)
+    .map(([word, v]) => ({ word, avgStars: v.total / v.count, count: v.count }))
+    .sort((a, b) => a.avgStars - b.avgStars)
+    .slice(0, 6);
+}
+
+const LV_MONTHS = ['jan.', 'feb.', 'mar.', 'apr.', 'maijs', 'jūn.', 'jūl.', 'aug.', 'sep.', 'okt.', 'nov.', 'dec.'];
+const LV_DAYS = ['Sv', 'P', 'O', 'T', 'C', 'Pk', 'S'];
+
+function formatLvDate(isoDate) {
+  const [, m, d] = isoDate.split('-');
+  return `${parseInt(d)}. ${LV_MONTHS[parseInt(m) - 1]}`;
+}
+
+function KpiCard({ label, value, sub, accent }) {
+  return (
+    <div style={{
+      flex: '1 1 0', minWidth: 0, background: 'var(--surface)', borderRadius: 20,
+      padding: '14px 12px', textAlign: 'center',
+      boxShadow: '0 4px 12px rgba(140,90,130,.12)',
+    }}>
+      <div className="display" style={{ fontSize: 28, fontWeight: 700, color: accent || 'var(--primary)', lineHeight: 1.1 }}>{value}</div>
+      <div className="display" style={{ fontSize: 11, fontWeight: 600, color: 'var(--inkSoft)', marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
+      {sub && <div className="display" style={{ fontSize: 11, color: 'var(--inkSoft)', marginTop: 2 }}>{sub}</div>}
+    </div>
+  );
+}
+
+function ParentDashboard({ history, currentId, levelStars, onBack }) {
+  if (history.length === 0) {
+    return (
+      <div className="screen" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 28px', textAlign: 'center' }}>
+        <div style={{ fontSize: 72, marginBottom: 16 }}>🧚</div>
+        <div className="display" style={{ fontSize: 22, fontWeight: 700, color: 'var(--primary)', marginBottom: 10 }}>Vecāku panelis</div>
+        <div className="display" style={{ fontSize: 16, color: 'var(--inkSoft)', lineHeight: 1.5, maxWidth: 320 }}>
+          Vēl nav datu — nospēlē pirmo nodarbību un fejas miedziņu, lai šeit parādītos progress!
+        </div>
+        <button onClick={onBack} className="kid-btn" style={{ marginTop: 32, padding: '14px 40px', fontSize: 19 }}>← Atpakaļ</button>
+      </div>
+    );
+  }
+
+  const allWords = history.flatMap(e => e.words);
+  const totalLevels = (window.LEVELS || []).length || 109;
+  const pctProgress = Math.min(100, Math.round((currentId - 1) / totalLevels * 100));
+  const wordsMastered = Object.values(levelStars || {}).filter(s => s >= 2).length;
+  const last7 = getLast7Days(history);
+  const minutesThisWeek = Math.round(last7.reduce((s, d) => s + (d ? d.durationMs : 0), 0) / 60000);
+  const avgAccuracyPct = allWords.length > 0
+    ? Math.round(allWords.reduce((s, w) => s + w.stars, 0) / allWords.length / 3 * 100)
+    : 0;
+
+  const trend = getAccuracyTrend(history);
+  const trendLabel = trend === 'up' ? 'Uzlabojas ↑' : trend === 'down' ? 'Krītas ↓' : 'Stabils —';
+  const trendColor = trend === 'up' ? '#22a060' : trend === 'down' ? '#d07020' : 'var(--inkSoft)';
+
+  const maxMins = Math.max(1, ...last7.map(d => d ? d.durationMs / 60000 : 0));
+
+  const recentSessions = history.slice().reverse().slice(0, 7);
+  const struggling = getStrugglingWords(history);
+  const hasSpeed = allWords.some(w => w.ms > 0);
+
+  const GAME_LABELS = { syllable: 'Zilbes', readfind: 'Atrodi', firstletter: '1. burts', blend: 'Skaņas', mixed: 'Jaukti' };
+
+  return (
+    <div className="screen" style={{ overflowY: 'auto' }}>
+      {/* top bar */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: 'calc(var(--safe-top, 0px) + 14px) 18px 10px',
+        background: 'var(--surface)', borderBottom: '1px solid rgba(150,110,150,.12)',
+        position: 'sticky', top: 0, zIndex: 10,
+      }}>
+        <button onClick={onBack} className="kid-btn ghost icon-btn" style={{ fontSize: 22 }}>‹</button>
+        <span className="display" style={{ fontSize: 20, fontWeight: 700, color: 'var(--primary)', flex: 1 }}>Vecāku panelis</span>
+        <span style={{ fontSize: 22 }}>🧚</span>
+      </div>
+
+      <div style={{ padding: '18px 16px', maxWidth: 540, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+        {/* KPI row */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <KpiCard label="Gaita" value={`${pctProgress}%`} sub={`${currentId - 1}/${totalLevels} līm.`} />
+          <KpiCard label="Apgūti" value={wordsMastered} sub="vārdi (2⭐+)" />
+          <KpiCard label="Šonedēļ" value={`${minutesThisWeek}`} sub="minūtes" />
+          <KpiCard label="Precizitāte" value={`${avgAccuracyPct}%`} />
+        </div>
+
+        {/* daily minutes chart */}
+        <div style={{ background: 'var(--surface)', borderRadius: 20, padding: '16px 16px 12px', boxShadow: '0 4px 12px rgba(140,90,130,.10)' }}>
+          <div className="display" style={{ fontSize: 13, fontWeight: 700, color: 'var(--inkSoft)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 }}>Laiks pa dienām</div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5, height: 100 }}>
+            {last7.map((day, i) => {
+              const mins = day ? Math.round(day.durationMs / 60000) : 0;
+              const heightPct = mins > 0 ? Math.max(8, (mins / maxMins) * 100) : 4;
+              const isToday = i === 6;
+              const d = new Date(); d.setDate(d.getDate() - (6 - i));
+              const dayLabel = LV_DAYS[d.getDay()];
+              return (
+                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: '100%', justifyContent: 'flex-end' }}>
+                  {mins > 0 && (
+                    <span className="display" style={{ fontSize: 9, color: isToday ? 'var(--primary)' : 'var(--inkSoft)', fontWeight: 600 }}>{mins}'</span>
+                  )}
+                  <div style={{
+                    width: '100%', height: `${heightPct}%`, borderRadius: '4px 4px 0 0',
+                    background: isToday ? 'var(--primary)' : 'var(--primary)',
+                    opacity: mins > 0 ? (isToday ? 1 : 0.55) : 0.18,
+                    transition: 'height .3s',
+                  }} />
+                  <span className="display" style={{ fontSize: 10, color: isToday ? 'var(--primary)' : 'var(--inkSoft)', fontWeight: isToday ? 700 : 400 }}>{dayLabel}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* accuracy trend */}
+        <div style={{ background: 'var(--surface)', borderRadius: 20, padding: '14px 18px', boxShadow: '0 4px 12px rgba(140,90,130,.10)', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ flex: 1 }}>
+            <div className="display" style={{ fontSize: 13, fontWeight: 700, color: 'var(--inkSoft)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Precizitātes tendence</div>
+            <div className="display" style={{ fontSize: 22, fontWeight: 700, color: trendColor, marginTop: 4 }}>{trendLabel}</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div className="display" style={{ fontSize: 13, color: 'var(--inkSoft)' }}>Kopā vārdi</div>
+            <div className="display" style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)' }}>{allWords.length}</div>
+          </div>
+        </div>
+
+        {/* session history */}
+        <div style={{ background: 'var(--surface)', borderRadius: 20, padding: '14px 16px', boxShadow: '0 4px 12px rgba(140,90,130,.10)' }}>
+          <div className="display" style={{ fontSize: 13, fontWeight: 700, color: 'var(--inkSoft)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Pēdējās nodarbības</div>
+          {recentSessions.map((entry, i) => (
+            <div key={i} style={{
+              display: 'flex', alignItems: 'center', gap: 8, padding: '9px 0',
+              borderBottom: i < recentSessions.length - 1 ? '1px solid rgba(150,110,150,.1)' : 'none',
+            }}>
+              <span style={{ fontSize: 16 }}>📅</span>
+              <span className="display" style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600, minWidth: 68 }}>{formatLvDate(entry.date)}</span>
+              <span className="display" style={{ fontSize: 13, color: 'var(--inkSoft)' }}>⏱ {Math.round(entry.durationMs / 60000)}min</span>
+              <span className="display" style={{ fontSize: 13, color: 'var(--inkSoft)' }}>📝 {entry.words.length}</span>
+              <span className="display" style={{ fontSize: 13, color: 'var(--inkSoft)', marginLeft: 'auto' }}>⭐ {entry.sessionStars}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* struggling words */}
+        {struggling.length > 0 && (
+          <div style={{ background: 'var(--surface)', borderRadius: 20, padding: '14px 16px', boxShadow: '0 4px 12px rgba(140,90,130,.10)' }}>
+            <div className="display" style={{ fontSize: 13, fontWeight: 700, color: 'var(--inkSoft)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Grūtākie vārdi</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {struggling.map(({ word, avgStars, count }) => (
+                <div key={word} style={{
+                  background: 'rgba(150,110,150,.1)', borderRadius: 12, padding: '6px 12px',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}>
+                  <span className="display" style={{ fontSize: 15, fontWeight: 700, color: 'var(--primary)' }}>{word}</span>
+                  <span className="display" style={{ fontSize: 12, color: 'var(--inkSoft)' }}>⭐{avgStars.toFixed(1)} · {count}×</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* speed by game type */}
+        {hasSpeed && (() => {
+          const byGame = {};
+          allWords.filter(w => w.ms > 0).forEach(w => {
+            if (!byGame[w.game]) byGame[w.game] = { total: 0, count: 0 };
+            byGame[w.game].total += w.ms;
+            byGame[w.game].count++;
+          });
+          const entries = Object.entries(byGame).map(([game, v]) => ({ game, avgSec: (v.total / v.count / 1000).toFixed(1) }));
+          return (
+            <div style={{ background: 'var(--surface)', borderRadius: 20, padding: '14px 16px', boxShadow: '0 4px 12px rgba(140,90,130,.10)' }}>
+              <div className="display" style={{ fontSize: 13, fontWeight: 700, color: 'var(--inkSoft)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Vidējais atbildes laiks</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {entries.map(({ game, avgSec }) => (
+                  <div key={game} style={{ background: 'rgba(150,110,150,.1)', borderRadius: 12, padding: '6px 12px' }}>
+                    <span className="display" style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>{GAME_LABELS[game] || game}</span>
+                    <span className="display" style={{ fontSize: 12, color: 'var(--inkSoft)', marginLeft: 6 }}>{avgSec}s</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
+        <div style={{ height: 'calc(20px + var(--safe-bottom, 0px))' }} />
+      </div>
+    </div>
+  );
+}
+
 Object.assign(window, {
   Sky, MusicButton, MilestonePopup, Welcome, GamesHub, ChapterSelect, CardGallery, FairyMap, RewardScreen,
-  TiredToast, NightSky, GoodnightScreen, SleepScreen, CardPeek, CardDetail, CardTile,
+  TiredToast, NightSky, GoodnightScreen, SleepScreen, CardPeek, CardDetail, CardTile, ParentDashboard,
 });

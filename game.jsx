@@ -151,7 +151,7 @@ function WordPictureCard({ wordKey, data, accent, won, paddingTop = 14 }) {
   );
 }
 
-function SyllableGame({ wordKey, mode, accent, progress, onWin, onExit, onWordDone, musicOn, onToggleMusic, onShowCards }) {
+function SyllableGame({ wordKey, mode, accent, progress, onWin, onExit, onWordDone, onWordRecord, gameType = 'syllable', musicOn, onToggleMusic, onShowCards }) {
   const data = WORDS[wordKey];
   const answer = data.syll;
   const n = answer.length;
@@ -186,20 +186,24 @@ function SyllableGame({ wordKey, mode, accent, progress, onWin, onExit, onWordDo
   const [drag, setDrag] = useStateG(null);
   const [wrongOpt, setWrongOpt] = useStateG(null);
   const slotRefs = useRefG([]);
+  const wordStartRef = useRefG(null);
 
   // reset when word changes
   useEffectG(() => {
     clearTimers();
     setSlots(Array(n).fill(null)); setResolving(false); setWon(false);
     setMistakes(0); setFeedback(null); setShakeWrong(false); setDrag(null); setWrongOpt(null);
+    wordStartRef.current = Date.now();
   }, [wordKey]);
 
   function winNow() {
+    const ms = wordStartRef.current ? Date.now() - wordStartRef.current : 0;
     setFeedback('right'); setWon(true);
-    playSfx('win');     // celebration sound on every correct answer
-    playWord(wordKey);  // then hear the word
-    if (onWordDone) onWordDone(mistakes === 0); // streak: was this word first-try?
-    setSafeTimeout(() => onWin(starsForMistakes(mistakes)), 1150);
+    playSfx('win');
+    playWord(wordKey);
+    if (onWordDone) onWordDone(mistakes === 0);
+    if (onWordRecord) onWordRecord({ word: wordKey, game: gameType, stars: starsForMistakes(mistakes), ms });
+    setSafeTimeout(() => onWin(starsForMistakes(mistakes), ms), 1150);
   }
 
   // ── tap / drag placement ──

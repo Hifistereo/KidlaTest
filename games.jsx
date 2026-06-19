@@ -84,9 +84,10 @@ function useRound(pool, onDone, fallback) {
 // ATRODI ATTĒLU — read the written word, then tap the matching picture.
 // Picture options revealed only as choices; audio plays AFTER the pick.
 // ─────────────────────────────────────────────────────────────
-function ReadFindGame({ words, accent, onDone, onExit, onWordDone, musicOn, onToggleMusic, onShowCards }) {
+function ReadFindGame({ words, accent, onDone, onExit, onWordDone, onWordRecord, musicOn, onToggleMusic, onShowCards }) {
   const { word, idx, total, advance } = useRound(words, onDone);
   const { setSafeTimeout, clearTimers } = useTimeoutBag();
+  const wordStartRef = useRefP(null);
 
   const opts = useRefP(null);
   if (!opts.current || opts.current._w !== word) {
@@ -98,7 +99,7 @@ function ReadFindGame({ words, accent, onDone, onExit, onWordDone, musicOn, onTo
   const [won, setWon] = useStateP(false);
   const [mistakes, setMistakes] = useStateP(0);
   const [wrongKey, setWrongKey] = useStateP(null);
-  useEffectP(() => { clearTimers(); setWon(false); setMistakes(0); setWrongKey(null); }, [word]);
+  useEffectP(() => { clearTimers(); setWon(false); setMistakes(0); setWrongKey(null); wordStartRef.current = Date.now(); }, [word]);
 
   function pick(key) {
     if (won) return;
@@ -107,7 +108,9 @@ function ReadFindGame({ words, accent, onDone, onExit, onWordDone, musicOn, onTo
       playSfx('win');
       playWord(word);
       const m = mistakes;
+      const ms = wordStartRef.current ? Date.now() - wordStartRef.current : 0;
       if (onWordDone) onWordDone(m === 0);
+      if (onWordRecord) onWordRecord({ word, game: 'readfind', stars: starsForMistakes(m), ms });
       setSafeTimeout(() => advance(starsForMistakes(m)), 1150);
     } else {
       setMistakes(m => m + 1);
@@ -150,11 +153,12 @@ function ReadFindGame({ words, accent, onDone, onExit, onWordDone, musicOn, onTo
 // ─────────────────────────────────────────────────────────────
 // PIRMAIS BURTS — picture shown (and spoken); pick the starting letter.
 // ─────────────────────────────────────────────────────────────
-function FirstLetterGame({ words, accent, onDone, onExit, onWordDone, musicOn, onToggleMusic, onShowCards }) {
+function FirstLetterGame({ words, accent, onDone, onExit, onWordDone, onWordRecord, musicOn, onToggleMusic, onShowCards }) {
   const { word, idx, total, advance } = useRound(words, onDone);
   const data = WORDS[word] || {};
   const first = Array.from(word)[0];
   const { setSafeTimeout, clearTimers } = useTimeoutBag();
+  const wordStartRef = useRefP(null);
 
   const opts = useRefP(null);
   if (!opts.current || opts.current._w !== word) {
@@ -166,19 +170,18 @@ function FirstLetterGame({ words, accent, onDone, onExit, onWordDone, musicOn, o
   const [won, setWon] = useStateP(false);
   const [mistakes, setMistakes] = useStateP(0);
   const [wrong, setWrong] = useStateP(null);
-  useEffectP(() => { clearTimers(); setWon(false); setMistakes(0); setWrong(null); playWord(word); }, [word]);
+  useEffectP(() => { clearTimers(); setWon(false); setMistakes(0); setWrong(null); wordStartRef.current = Date.now(); playWord(word); }, [word]);
 
   function pick(letter) {
     if (won) return;
     if (letter === first) {
       setWon(true);
       playSfx('win');
-      setSafeTimeout(() => playWord(word), 350); // full word only — no letter replay
+      setSafeTimeout(() => playWord(word), 350);
       const m = mistakes;
+      const ms = wordStartRef.current ? Date.now() - wordStartRef.current : 0;
       if (onWordDone) onWordDone(m === 0);
-      // Hold ~3s before advancing: the next word is announced the moment it
-      // mounts (the [word] effect above), so a short gap here made the win
-      // chime + spoken word overlap with the next word's name. 3s clears them.
+      if (onWordRecord) onWordRecord({ word, game: 'firstletter', stars: starsForMistakes(m), ms });
       setSafeTimeout(() => advance(starsForMistakes(m)), 3000);
     } else {
       setMistakes(m => m + 1);
@@ -222,7 +225,7 @@ function FirstLetterGame({ words, accent, onDone, onExit, onWordDone, musicOn, o
 // SKAŅAS — hear each sound (tap to replay), then pick the matching picture.
 // Uses the curated BLEND_WORDS subset so blending is clean.
 // ─────────────────────────────────────────────────────────────
-function BlendGame({ words, accent, onDone, onExit, onWordDone, musicOn, onToggleMusic, onShowCards }) {
+function BlendGame({ words, accent, onDone, onExit, onWordDone, onWordRecord, musicOn, onToggleMusic, onShowCards }) {
   // restrict the pool to blend-friendly words the child has unlocked
   const pool = useRefP(null);
   if (!pool.current) {
@@ -232,6 +235,7 @@ function BlendGame({ words, accent, onDone, onExit, onWordDone, musicOn, onToggl
   const { word, idx, total, advance } = useRound(pool.current, onDone, Object.keys(BLEND_WORDS));
   const sounds = BLEND_WORDS[word] || Array.from(word);
   const { setSafeTimeout, clearTimers } = useTimeoutBag();
+  const wordStartRef = useRefP(null);
 
   const opts = useRefP(null);
   if (!opts.current || opts.current._w !== word) {
@@ -249,6 +253,7 @@ function BlendGame({ words, accent, onDone, onExit, onWordDone, musicOn, onToggl
   useEffectP(() => {
     clearTimers();
     setWon(false); setMistakes(0); setWrongKey(null); setLit(-1);
+    wordStartRef.current = Date.now();
     sounds.forEach((s, i) => {
       setSafeTimeout(() => { setLit(i); playSound(s); }, 350 + i * 700);
     });
@@ -263,7 +268,9 @@ function BlendGame({ words, accent, onDone, onExit, onWordDone, musicOn, onToggl
       playSfx('win');
       playWord(word);
       const m = mistakes;
+      const ms = wordStartRef.current ? Date.now() - wordStartRef.current : 0;
       if (onWordDone) onWordDone(m === 0);
+      if (onWordRecord) onWordRecord({ word, game: 'blend', stars: starsForMistakes(m), ms });
       setSafeTimeout(() => advance(starsForMistakes(m)), 1150);
     } else {
       setMistakes(m => m + 1);
@@ -331,7 +338,7 @@ function BlendGame({ words, accent, onDone, onExit, onWordDone, musicOn, onToggl
 // shared SyllableGame; earns stars like the other hub games (onDone) without
 // touching journey progress.
 // ─────────────────────────────────────────────────────────────
-function MixedWordsGame({ mode, onDone, onExit, onWordDone, musicOn, onToggleMusic, onShowCards }) {
+function MixedWordsGame({ mode, onDone, onExit, onWordDone, onWordRecord, musicOn, onToggleMusic, onShowCards }) {
   const SharedSyllableGame = window.SyllableGame;
   const round = useRefP(null);
   if (!round.current) round.current = buildMixedRound(ROUND_SIZE);
@@ -354,7 +361,8 @@ function MixedWordsGame({ mode, onDone, onExit, onWordDone, musicOn, onToggleMus
       key={list[idx] + '-' + idx}
       wordKey={list[idx]} mode={mode} accent={accent}
       progress={{ index: idx, total: list.length }}
-      onWin={advance} onWordDone={onWordDone} onExit={onExit} onShowCards={onShowCards}
+      onWin={advance} onWordDone={onWordDone} onWordRecord={onWordRecord} gameType="mixed"
+      onExit={onExit} onShowCards={onShowCards}
       musicOn={musicOn} onToggleMusic={onToggleMusic} />
   );
 }
