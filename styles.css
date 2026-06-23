@@ -94,12 +94,12 @@ body {
 
 /* collectible-card grids (gallery screen + in-game peek) */
 .card-grid {
-  display: grid; gap: 12px;
-  grid-template-columns: repeat(auto-fill, minmax(clamp(96px, 22vw, 150px), 1fr));
+  display: grid; gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(clamp(130px, 30vw, 195px), 1fr));
 }
 .card-grid--peek {
-  grid-template-columns: repeat(auto-fill, minmax(clamp(88px, 20vw, 130px), 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(clamp(100px, 24vw, 150px), 1fr));
+  gap: 12px;
 }
 
 /* short landscape viewports (phones rotated): tighten the chrome */

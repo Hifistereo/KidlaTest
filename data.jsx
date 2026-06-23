@@ -268,7 +268,7 @@ const LEVELS = LEVEL_WORDS.map((word, i) => ({
 // single source of truth. Each chapter awards one collectible card.
 // ─────────────────────────────────────────────────────────────
 const CHAPTER_SIZE = 10;
-const MILESTONE_CARD_IMAGES = 16; // images/milestones/01..16.png exist today
+const MILESTONE_CARD_IMAGES = 26; // images/milestones/01..26.png
 const CHAPTERS = [];
 for (let i = 0; i < LEVELS.length; i += CHAPTER_SIZE) {
   const levels = LEVELS.slice(i, i + CHAPTER_SIZE);
@@ -357,10 +357,10 @@ function Fairy({ size = 92, mood = 'happy', float = true, buddy = null }) {
       }}>{faces[mood] || faces.happy}</div>
       {buddy && (
         <div style={{
-          position: 'absolute', right: -size * 0.28, bottom: -size * 0.02,
-          width: size * 0.46, height: size * 0.61, borderRadius: size * 0.10,
+          position: 'absolute', right: -size * 0.38, bottom: -size * 0.08,
+          width: size * 0.65, height: size * 0.86, borderRadius: size * 0.12,
           overflow: 'hidden', background: '#fff',
-          boxShadow: `0 0 0 ${Math.max(2, Math.round(size * 0.04))}px #fff, 0 4px 10px rgba(140,90,130,.3)`,
+          boxShadow: `0 0 0 ${Math.max(2, Math.round(size * 0.05))}px #fff, 0 6px 14px rgba(140,90,130,.4)`,
           transform: 'rotate(7deg)', zIndex: 2, pointerEvents: 'none',
           animation: float ? 'floaty 3.4s ease-in-out .4s infinite' : 'none',
         }}>
@@ -368,6 +368,35 @@ function Fairy({ size = 92, mood = 'happy', float = true, buddy = null }) {
             onError={(e) => { e.target.style.display = 'none'; }} />
         </div>
       )}
+    </div>
+  );
+}
+
+// Large standalone floating companion card — used on Welcome and Reward screens
+// so the chosen character is big, eye-catching, and clearly a "friend".
+function FloatingCompanion({ src, size = 160 }) {
+  const h = Math.round(size * 1.33);
+  return (
+    <div style={{ position: 'relative', display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div style={{
+        position: 'absolute', top: -20, left: '50%', transform: 'translateX(-50%)',
+        fontSize: 24, animation: 'sparkle 2.4s ease-in-out infinite', pointerEvents: 'none',
+      }}>✨</div>
+      <div style={{
+        width: size, height: h, borderRadius: Math.round(size * 0.12),
+        overflow: 'hidden', background: 'var(--surface)',
+        boxShadow: '0 0 0 5px rgba(255,255,255,.92), 0 22px 55px rgba(120,60,110,.45)',
+        transform: 'rotate(5deg)',
+        animation: 'floaty 3.2s ease-in-out 0.2s infinite',
+      }}>
+        <img src={src} alt="Mans draugs" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          onError={(e) => { e.target.style.display = 'none'; }} />
+      </div>
+      <div className="display" style={{
+        marginTop: 14, padding: '7px 20px', borderRadius: 999,
+        background: GOLD, color: '#fff', fontSize: 17, fontWeight: 700,
+        boxShadow: `0 4px 0 ${GOLD_DARK}`,
+      }}>💛 Mans draugs!</div>
     </div>
   );
 }
