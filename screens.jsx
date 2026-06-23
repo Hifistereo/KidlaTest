@@ -59,7 +59,7 @@ function MilestonePopup({ n, src, exiting }) {
           : 'pop-in .5s cubic-bezier(.34,1.56,.64,1) both',
       }}>
         <div style={{
-          width: 'min(214px, 44vw, calc(var(--app-h, 100dvh) * 0.42))', aspectRatio: '214 / 340',
+          width: 'min(260px, 56vw, calc(var(--app-h, 100dvh) * 0.52))', aspectRatio: '214 / 340',
           borderRadius: 30, margin: '0 auto',
           background: 'var(--surface)', overflow: 'hidden',
           boxShadow: '0 18px 50px rgba(120,60,110,.4), 0 0 0 5px rgba(255,255,255,.85)',
@@ -416,8 +416,15 @@ function Welcome({ onStart, musicOn, onToggleMusic, companion }) {
           margin: 'auto', width: '100%', maxWidth: 520, padding: '24px 30px', textAlign: 'center',
           display: 'flex', flexDirection: 'column', alignItems: 'center',
         }}>
-        <div style={{ animation: 'pop-in .6s ease both' }}>
-          <Fairy size={150} buddy={companion} />
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 20, flexWrap: 'wrap' }}>
+          <div style={{ animation: 'pop-in .6s ease both' }}>
+            <Fairy size={150} buddy={null} />
+          </div>
+          {companion && (
+            <div style={{ animation: 'pop-in .7s ease .15s both' }}>
+              <FloatingCompanion src={companion} size={140} />
+            </div>
+          )}
         </div>
 
         <div style={{ marginTop: 18, animation: 'slide-up .6s ease .15s both' }}>
@@ -547,9 +554,9 @@ function ChapterSelect({ chapters, currentId, levelStars, totalStars, onPick, on
               animation: `slide-up .5s ease ${i * 0.04}s both`,
             }}>
               <div style={{
-                width: 64, height: 64, borderRadius: 20, flexShrink: 0, overflow: 'hidden',
+                width: 80, height: 80, borderRadius: 22, flexShrink: 0, overflow: 'hidden',
                 background: state === 'locked' ? 'rgba(140,90,130,.12)' : accent[0],
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 34,
                 boxShadow: state === 'locked' ? 'none' : `0 4px 0 ${accent[1]}`,
               }}>
                 {state === 'done'
@@ -860,8 +867,15 @@ function RewardScreen({ starsEarned, totalStars, newTreasure, newCard, onContinu
 
       <div style={{ position: 'relative', height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         <div style={{ margin: 'auto', width: '100%', maxWidth: 480, padding: '24px 30px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <div style={{ animation: 'pop-in .5s ease both' }}>
-          <Fairy size={120} mood="cheer" buddy={companion} />
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <div style={{ animation: 'pop-in .5s ease both' }}>
+            <Fairy size={120} mood="cheer" buddy={null} />
+          </div>
+          {companion && (
+            <div style={{ animation: 'pop-in .6s ease .1s both' }}>
+              <FloatingCompanion src={companion} size={110} />
+            </div>
+          )}
         </div>
         <div className="display" style={{ marginTop: 8, fontSize: newCard ? 'clamp(30px, 6vw, 38px)' : 'clamp(34px, 8vw, 46px)', fontWeight: 700, color: 'var(--primary)', filter: 'drop-shadow(0 3px 0 rgba(255,255,255,.6))', animation: 'pop-in .5s ease .1s both' }}>{praise}</div>
 

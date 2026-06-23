@@ -5,7 +5,7 @@ const { TiredToast, GoodnightScreen, SleepScreen, CardPeek, ParentDashboard } = 
 const { SyllableGame, ReadFindGame, FirstLetterGame, BlendGame, MixedWordsGame } = window;
 
 // number of milestone character images in images/milestones/ (01.png … NN.png)
-const MILESTONE_IMAGES = 16;
+const MILESTONE_IMAGES = 26;
 const STREAK_STEP = 10; // pop a celebration every N words in a row
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
