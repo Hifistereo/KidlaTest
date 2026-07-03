@@ -283,6 +283,23 @@ for (let i = 0; i < LEVELS.length; i += CHAPTER_SIZE) {
   });
 }
 
+// ─────────────────────────────────────────────────────────────
+// Streak cards — the milestone artwork NOT used by chapter cards
+// (images CHAPTERS.length+1 … 26) is collectible too: every 10-words-in-a-row
+// streak unlocks the next one into the album. `id` shares the card-id space
+// with chapters (a chapter card's image number == its chapter id), so the
+// companion picker can store one id for either kind. `n` is the 1-based
+// unlock order compared against the persisted streak-card count.
+// ─────────────────────────────────────────────────────────────
+const STREAK_CARDS = [];
+for (let img = CHAPTERS.length + 1; img <= MILESTONE_CARD_IMAGES; img++) {
+  STREAK_CARDS.push({
+    id: img,
+    n: STREAK_CARDS.length + 1,
+    card: `images/milestones/${String(img).padStart(2, '0')}.png`,
+  });
+}
+
 // rewards unlocked at star milestones (ceiling ≈ 109 levels × 3⭐ ≈ 327)
 const TREASURES = [
   { at: 5,   icon: '🎀', name: 'Lentīte' },
@@ -541,7 +558,7 @@ function StarCount({ value }) {
 
 Object.assign(window, {
   PALETTES, HUES, GOLD, GOLD_DARK, WORDS, LEVELS, CHAPTERS, CHAPTER_SIZE, TREASURES,
-  MILESTONE_CARD_IMAGES,
+  MILESTONE_CARD_IMAGES, STREAK_CARDS,
   LETTER_SOUNDS, LV_ALPHABET, BLEND_WORDS,
   pickDistractors, pickWordDistractors, pickLetterDistractors, shuffle,
   Sparkle, SparkleField, Fairy, FloatingCompanion, SpeechBubble, StarCount,

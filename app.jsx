@@ -68,9 +68,20 @@ function loadMusicOn() {
   try { return localStorage.getItem(MUSIC_KEY) !== 'off'; } catch (e) { return true; }
 }
 
+// ── streak cards earned (album pages beyond the chapter cards) ──
+// Persisted count: the first N of STREAK_CARDS are unlocked.
+const STREAK_CARDS_KEY = 'burtu-feja-streak-cards';
+function loadStreakCards() {
+  try {
+    const v = parseInt(localStorage.getItem(STREAK_CARDS_KEY), 10);
+    return Number.isFinite(v) ? Math.max(0, Math.min(v, STREAK_CARDS.length)) : 0;
+  } catch (e) { return 0; }
+}
+
 // ── companion card (the collectible the child picked as a buddy) ──
-// Stores the chapter id; the image is derived so card-art reshuffles
-// can't break it, and it only shows while that chapter stays unlocked.
+// Stores the card id (chapter id, or a streak card's image number); the image
+// is derived so card-art reshuffles can't break it, and it only shows while
+// that card stays unlocked.
 const COMPANION_KEY = 'burtu-feja-companion';
 function loadCompanion() {
   try {
@@ -240,9 +251,19 @@ function App() {
     const s = streakRef.current + 1;
     streakRef.current = s;
     if (s % STREAK_STEP === 0) {
-      const idx = ((s / STREAK_STEP - 1) % MILESTONE_IMAGES) + 1; // 1..N, cycles
-      const src = `images/milestones/${String(idx).padStart(2, '0')}.png`;
-      setMilestone({ n: s, src, exiting: false });
+      // while streak cards remain locked, each streak unlocks the next one
+      // into the album; afterwards the popup keeps cycling the artwork
+      const next = STREAK_CARDS[streakCards];
+      let src, isNew = false;
+      if (next) {
+        src = next.card;
+        isNew = true;
+        setStreakCards(streakCards + 1);
+      } else {
+        const idx = ((s / STREAK_STEP - 1) % MILESTONE_IMAGES) + 1; // 1..N, cycles
+        src = `images/milestones/${String(idx).padStart(2, '0')}.png`;
+      }
+      setMilestone({ n: s, src, exiting: false, isNew });
       if (window.playSfx) window.playSfx('win', 0.7);
       clearMilestoneTimers();
       // hold ~4.2s, then play the fly-away exit (~0.55s), then remove
@@ -278,7 +299,13 @@ function App() {
   const [levelStars, setLevelStars] = useS(SAVED ? SAVED.levelStars : {});
   const [totalStars, setTotalStars] = useS(SAVED ? SAVED.totalStars : 0);
 
-  // chosen companion card — only valid while its chapter is still unlocked
+  // streak cards earned so far (album pages 12+), persisted
+  const [streakCards, setStreakCards] = useS(loadStreakCards);
+  useE(() => {
+    try { localStorage.setItem(STREAK_CARDS_KEY, String(streakCards)); } catch (e) {}
+  }, [streakCards]);
+
+  // chosen companion card — only valid while that card is still unlocked
   const [companionId, setCompanionId] = useS(loadCompanion);
   useE(() => {
     try {
@@ -287,7 +314,10 @@ function App() {
     } catch (e) {}
   }, [companionId]);
   const companionCh = CHAPTERS.find(c => c.id === companionId);
-  const companionSrc = (companionCh && companionCh.endId < currentId) ? companionCh.card : null;
+  const companionStreak = STREAK_CARDS.find(c => c.id === companionId);
+  const companionSrc = (companionCh && companionCh.endId < currentId) ? companionCh.card
+    : (companionStreak && companionStreak.n <= streakCards) ? companionStreak.card
+    : null;
 
   // persist whenever progress changes
   useE(() => {
@@ -372,6 +402,7 @@ function App() {
   // wipe all progress and begin again from level 1
   function startOver() {
     setCurrentId(1); setLevelStars({}); setTotalStars(0);
+    setStreakCards(0);
     setCompanionId(null); // the buddy card is locked again
     setActiveLevel(LEVELS[0]); setActiveChapter(CHAPTERS[0]);
     try { localStorage.removeItem(PROGRESS_KEY); } catch (e) {}
@@ -407,7 +438,7 @@ function App() {
   if (screen === 'welcome') body = <Welcome onStart={() => setScreen('hub')} musicOn={musicOn} onToggleMusic={toggleMusic} companion={companionSrc} />;
   else if (screen === 'hub') body = <GamesHub totalStars={totalStars} onPick={launchGame} musicOn={musicOn} onToggleMusic={toggleMusic} companion={companionSrc} />;
   else if (screen === 'chapters') body = <ChapterSelect chapters={CHAPTERS} currentId={currentId} levelStars={levelStars} totalStars={totalStars} onPick={pickChapter} onBack={() => setScreen('hub')} musicOn={musicOn} onToggleMusic={toggleMusic} />;
-  else if (screen === 'cards') body = <CardGallery chapters={CHAPTERS} currentId={currentId} onBack={() => setScreen('hub')} musicOn={musicOn} onToggleMusic={toggleMusic} companionId={companionId} onChooseCompanion={setCompanionId} />;
+  else if (screen === 'cards') body = <CardGallery chapters={CHAPTERS} currentId={currentId} streakCards={streakCards} onBack={() => setScreen('hub')} musicOn={musicOn} onToggleMusic={toggleMusic} companionId={companionId} onChooseCompanion={setCompanionId} />;
   else if (screen === 'map') body = <FairyMap chapter={activeChapter} currentId={currentId} levelStars={levelStars} totalStars={totalStars} onPlay={startLevel} onStartOver={startOver} onRandom={() => launchGame('mixed')} onBack={() => setScreen('chapters')} onShowCards={openCards} musicOn={musicOn} onToggleMusic={toggleMusic} companion={companionSrc} />;
   else if (screen === 'mixed') body = (
     <MixedWordsGame key={'mx' + gameNonce} mode={mode}
@@ -479,9 +510,9 @@ function App() {
       background: 'linear-gradient(180deg, var(--bg1) 0%, var(--bg2) 100%)',
     }}>
       <div style={{ position: 'absolute', inset: 0 }}>{body}</div>
-      {cardsOpen && <CardPeek chapters={CHAPTERS} currentId={currentId} onClose={() => setCardsOpen(false)} />}
+      {cardsOpen && <CardPeek chapters={CHAPTERS} currentId={currentId} streakCards={streakCards} onClose={() => setCardsOpen(false)} />}
       {tiredToast && <TiredToast />}
-      {milestone && <MilestonePopup n={milestone.n} src={milestone.src} exiting={milestone.exiting} />}
+      {milestone && <MilestonePopup n={milestone.n} src={milestone.src} exiting={milestone.exiting} isNew={milestone.isNew} />}
 
       <TweaksPanel title="Tweaks">
         <TweakSection label="Nodarbības veids" />
