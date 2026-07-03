@@ -458,10 +458,12 @@ function GamesHub({ totalStars, onPick, musicOn, onToggleMusic, companion }) {
   const CARDS = [
     { key: 'map',         icon: '🗺️', hue: 'lilac', title: 'Ceļojums',      sub: 'Saliec vārdus no zilbēm' },
     { key: 'readfind',    icon: '🔎', hue: 'sky',   title: 'Atrodi attēlu',  sub: 'Izlasi vārdu, atrodi bildi' },
+    { key: 'listen',      icon: '👂', hue: 'gold',  title: 'Klausies!',      sub: 'Dzirdi vārdu, atrodi bildi' },
     { key: 'firstletter', icon: '🔤', hue: 'mint',  title: 'Pirmais burts',  sub: 'Ar kuru burtu sākas?' },
     { key: 'blend',       icon: '🔊', hue: 'peach', title: 'Skaņas',         sub: 'Klausies un saliec vārdu' },
-    { key: 'mixed',       icon: '🎲', hue: 'gold',  title: 'Jaukti vārdi',   sub: 'Saliec sajauktus vārdus' },
-    { key: 'cards',       icon: '🎴', hue: 'rose',  title: 'Manas kartiņas', sub: 'Kolekcija un tavs draugs' },
+    { key: 'mixed',       icon: '🎲', hue: 'rose',  title: 'Jaukti vārdi',   sub: 'Saliec sajauktus vārdus' },
+    { key: 'pairs',       icon: '🧩', hue: 'lilac', title: 'Atrodi pāri',    sub: 'Atmiņas spēle ar bildēm' },
+    { key: 'cards',       icon: '🎴', hue: 'sky',   title: 'Manas kartiņas', sub: 'Kolekcija un tavs draugs' },
   ];
 
   return (
@@ -538,6 +540,17 @@ function ChapterSelect({ chapters, currentId, levelStars, totalStars, onPick, on
       {/* chapter list */}
       <div className="content">
         <div className="col menu-grid">
+        {currentId > chapters[chapters.length - 1].endId && (
+          <div className="display" style={{
+            gridColumn: '1 / -1', textAlign: 'center',
+            background: 'var(--surface)', borderRadius: 24, padding: '14px 18px',
+            boxShadow: `0 6px 0 ${GOLD_DARK}, 0 10px 20px rgba(140,90,130,.16)`,
+            fontSize: 17, fontWeight: 600, color: 'var(--ink)',
+            animation: 'pop-in .5s ease both',
+          }}>
+            🏰 Viss ceļojums pabeigts! Visas kartiņas ir tavā albumā! 🎉
+          </div>
+        )}
         {chapters.map((ch, i) => {
           const state = ch.startId > currentId ? 'locked' : ch.endId < currentId ? 'done' : 'current';
           const accent = HUES[ch.levels[0].hue];
@@ -830,8 +843,14 @@ function FairyMap({ chapter, currentId, levelStars, totalStars, onPlay, onStartO
 // ─────────────────────────────────────────────────────────────
 // REWARD / CELEBRATION
 // ─────────────────────────────────────────────────────────────
-function RewardScreen({ starsEarned, totalStars, newTreasure, newCard, onContinue, companion }) {
+function RewardScreen({ starsEarned, totalStars, newTreasure, newCard, journeyDone, onContinue, companion }) {
   const confetti = useRf(null);
+  // the companion cheers with a different little phrase each time
+  const cheer = useRf(null);
+  if (!cheer.current) {
+    const phrases = ['Urrā! 🎉', 'Tu esi super!', 'Cik forši!', 'Malacis, draugs!', 'Vēl vienu? 😊'];
+    cheer.current = phrases[Math.floor(Math.random() * phrases.length)];
+  }
   if (!confetti.current) {
     const cols = ['#ffd1ec', '#ffe5aa', '#c9e8ff', '#d8c9ff', '#c9f3df', '#ffc9c9'];
     confetti.current = Array.from({ length: 38 }, (_, i) => ({
@@ -849,7 +868,7 @@ function RewardScreen({ starsEarned, totalStars, newTreasure, newCard, onContinu
   const nIdx = TREASURES.indexOf(next);
   const prevAt = nIdx > 0 ? TREASURES[nIdx - 1].at : 0;
   const pct = Math.min(100, Math.max(4, Math.round(((totalStars - prevAt) / (next.at - prevAt)) * 100)));
-  const praise = newCard ? 'Nodaļa pabeigta!' : starsEarned >= 3 ? 'Lieliski!' : starsEarned === 2 ? 'Malacis!' : 'Tu to spēji!';
+  const praise = journeyDone ? 'Ceļojums pabeigts! 🏰' : newCard ? 'Nodaļa pabeigta!' : starsEarned >= 3 ? 'Lieliski!' : starsEarned === 2 ? 'Malacis!' : 'Tu to spēji!';
 
   return (
     <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
@@ -872,7 +891,8 @@ function RewardScreen({ starsEarned, totalStars, newTreasure, newCard, onContinu
             <Fairy size={120} mood="cheer" buddy={null} />
           </div>
           {companion && (
-            <div style={{ animation: 'pop-in .6s ease .1s both' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, animation: 'pop-in .6s ease .1s both' }}>
+              <SpeechBubble style={{ fontSize: 14, padding: '8px 14px' }}>{cheer.current}</SpeechBubble>
               <FloatingCompanion src={companion} size={110} />
             </div>
           )}
@@ -1030,7 +1050,7 @@ function ParentDashboard({ history, currentId, levelStars, onBack }) {
   const struggling = getStrugglingWords(history);
   const hasSpeed = allWords.some(w => w.ms > 0);
 
-  const GAME_LABELS = { syllable: 'Zilbes', readfind: 'Atrodi', firstletter: '1. burts', blend: 'Skaņas', mixed: 'Jaukti' };
+  const GAME_LABELS = { syllable: 'Zilbes', readfind: 'Atrodi', firstletter: '1. burts', blend: 'Skaņas', mixed: 'Jaukti', listen: 'Klausies', pairs: 'Pāri' };
 
   return (
     <div className="screen" style={{ overflowY: 'auto' }}>

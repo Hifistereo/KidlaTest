@@ -90,7 +90,7 @@ function useRound(pool, onDone, fallback) {
 // ATRODI ATTĒLU — read the written word, then tap the matching picture.
 // Picture options revealed only as choices; audio plays AFTER the pick.
 // ─────────────────────────────────────────────────────────────
-function ReadFindGame({ words, accent, onDone, onExit, onWordDone, onWordRecord, musicOn, onToggleMusic, onShowCards }) {
+function ReadFindGame({ words, accent, onDone, onExit, onWordDone, onWordRecord, musicOn, onToggleMusic, onShowCards, companion }) {
   const { word, idx, total, advance } = useRound(words, onDone);
   const { setSafeTimeout, clearTimers } = useTimeoutBag();
   const wordStartRef = useRefP(null);
@@ -126,7 +126,7 @@ function ReadFindGame({ words, accent, onDone, onExit, onWordDone, onWordRecord,
   }
 
   return (
-    <SharedGameFrame onExit={onExit} index={idx} total={total} won={won} musicOn={musicOn} onToggleMusic={onToggleMusic} onShowCards={onShowCards}>
+    <SharedGameFrame onExit={onExit} index={idx} total={total} won={won} musicOn={musicOn} onToggleMusic={onToggleMusic} onShowCards={onShowCards} companion={companion}>
       <div style={{ textAlign: 'center', padding: '18px 28px 0' }}>
         <span className="display" style={{ fontSize: 18, fontWeight: 500, color: 'var(--ink)' }}>
           {won ? 'Lieliski! 🎉' : 'Izlasi vārdu un atrodi attēlu!'}
@@ -159,7 +159,7 @@ function ReadFindGame({ words, accent, onDone, onExit, onWordDone, onWordRecord,
 // ─────────────────────────────────────────────────────────────
 // PIRMAIS BURTS — picture shown (and spoken); pick the starting letter.
 // ─────────────────────────────────────────────────────────────
-function FirstLetterGame({ words, accent, onDone, onExit, onWordDone, onWordRecord, musicOn, onToggleMusic, onShowCards }) {
+function FirstLetterGame({ words, accent, onDone, onExit, onWordDone, onWordRecord, musicOn, onToggleMusic, onShowCards, companion }) {
   const { word, idx, total, advance } = useRound(words, onDone);
   const data = WORDS[word] || {};
   const first = Array.from(word)[0];
@@ -197,7 +197,7 @@ function FirstLetterGame({ words, accent, onDone, onExit, onWordDone, onWordReco
   }
 
   return (
-    <SharedGameFrame onExit={onExit} index={idx} total={total} won={won} musicOn={musicOn} onToggleMusic={onToggleMusic} onShowCards={onShowCards}>
+    <SharedGameFrame onExit={onExit} index={idx} total={total} won={won} musicOn={musicOn} onToggleMusic={onToggleMusic} onShowCards={onShowCards} companion={companion}>
       {/* picture card (tap to hear) */}
       <SharedWordPictureCard wordKey={word} data={data} accent={accent} won={won} paddingTop={18} />
 
@@ -231,7 +231,7 @@ function FirstLetterGame({ words, accent, onDone, onExit, onWordDone, onWordReco
 // SKAŅAS — hear each sound (tap to replay), then pick the matching picture.
 // Uses the curated BLEND_WORDS subset so blending is clean.
 // ─────────────────────────────────────────────────────────────
-function BlendGame({ words, accent, onDone, onExit, onWordDone, onWordRecord, musicOn, onToggleMusic, onShowCards }) {
+function BlendGame({ words, accent, onDone, onExit, onWordDone, onWordRecord, musicOn, onToggleMusic, onShowCards, companion }) {
   // restrict the pool to blend-friendly words the child has unlocked
   const pool = useRefP(null);
   if (!pool.current) {
@@ -292,7 +292,7 @@ function BlendGame({ words, accent, onDone, onExit, onWordDone, onWordRecord, mu
   }
 
   return (
-    <SharedGameFrame onExit={onExit} index={idx} total={total} won={won} musicOn={musicOn} onToggleMusic={onToggleMusic} onShowCards={onShowCards}>
+    <SharedGameFrame onExit={onExit} index={idx} total={total} won={won} musicOn={musicOn} onToggleMusic={onToggleMusic} onShowCards={onShowCards} companion={companion}>
       <div style={{ textAlign: 'center', padding: '18px 28px 0' }}>
         <span className="display" style={{ fontSize: 19, fontWeight: 500, color: 'var(--ink)' }}>
           {won ? 'Lieliski! 🎉' : 'Klausies skaņas — kāds vārds sanāk?'}
@@ -339,12 +339,214 @@ function BlendGame({ words, accent, onDone, onExit, onWordDone, onWordRecord, mu
 }
 
 // ─────────────────────────────────────────────────────────────
+// KLAUSIES! — hear the spoken word (recorded clip), pick the matching
+// picture. The reverse of Atrodi attēlu: trains listening → meaning.
+// Uses only assets already present (audio/<slug>.mp3 + emoji pictures).
+// ─────────────────────────────────────────────────────────────
+function ListenFindGame({ words, accent, onDone, onExit, onWordDone, onWordRecord, musicOn, onToggleMusic, onShowCards, companion }) {
+  const { word, idx, total, advance } = useRound(words, onDone);
+  const { setSafeTimeout, clearTimers } = useTimeoutBag();
+  const wordStartRef = useRefP(null);
+
+  const opts = useRefP(null);
+  if (!opts.current || opts.current._w !== word) {
+    const o = shuffle([word, ...pickWordDistractors(word, 3)]);
+    o._w = word;
+    opts.current = o;
+  }
+
+  const [won, setWon] = useStateP(false);
+  const [mistakes, setMistakes] = useStateP(0);
+  const [wrongKey, setWrongKey] = useStateP(null);
+  const [speaking, setSpeaking] = useStateP(false);
+
+  const say = () => {
+    playWord(word);
+    setSpeaking(true);
+    setSafeTimeout(() => setSpeaking(false), 900);
+  };
+
+  // auto-speak each new word (the child is mid-session, so audio is unlocked)
+  useEffectP(() => {
+    clearTimers(); setWon(false); setMistakes(0); setWrongKey(null);
+    wordStartRef.current = Date.now();
+    setSafeTimeout(say, 450);
+  }, [word]);
+
+  function pick(key) {
+    if (won) return;
+    if (key === word) {
+      setWon(true);
+      playSfx('win');
+      playWord(word);
+      const m = mistakes;
+      const ms = wordStartRef.current ? Date.now() - wordStartRef.current : 0;
+      if (onWordDone) onWordDone(m === 0);
+      if (onWordRecord) onWordRecord({ word, game: 'listen', stars: starsForMistakes(m), ms });
+      setSafeTimeout(() => advance(starsForMistakes(m)), 1150);
+    } else {
+      setMistakes(m => m + 1);
+      setWrongKey(key);
+      setSafeTimeout(() => setWrongKey(null), 600);
+    }
+  }
+
+  return (
+    <SharedGameFrame onExit={onExit} index={idx} total={total} won={won} musicOn={musicOn} onToggleMusic={onToggleMusic} onShowCards={onShowCards} companion={companion}>
+      <div style={{ textAlign: 'center', padding: '18px 28px 0' }}>
+        <span className="display" style={{ fontSize: 19, fontWeight: 500, color: 'var(--ink)' }}>
+          {won ? 'Lieliski! 🎉' : 'Klausies vārdu un atrodi attēlu!'}
+        </span>
+      </div>
+
+      {/* big speaker card — tap to hear the word again */}
+      <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 18 }}>
+        <div onClick={say} className="tile" style={{
+          '--spk': 'min(140px, calc(var(--app-h, 100dvh) * 0.2))',
+          width: 'var(--spk)', height: 'var(--spk)', borderRadius: 36,
+          background: speaking ? accent[0] : 'var(--surface)',
+          boxShadow: speaking ? `0 8px 0 ${accent[1]}` : '0 8px 0 rgba(150,110,150,.22), 0 14px 30px rgba(140,90,130,.18)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          animation: won ? 'bob .6s ease-in-out infinite' : 'floaty-slow 4s ease-in-out infinite',
+          transition: 'background .2s, box-shadow .2s',
+        }}>
+          <span style={{ fontSize: 'calc(var(--spk) * 0.5)', lineHeight: 1, filter: 'drop-shadow(0 4px 6px rgba(140,90,130,.25))' }}>🔊</span>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 14 }}>
+        <button onClick={say} className="kid-btn ghost" style={{ padding: '10px 22px', fontSize: 17, fontWeight: 600 }}>
+          🔊 Vēlreiz
+        </button>
+      </div>
+
+      <div style={{ flex: 1 }} />
+
+      {/* picture choices */}
+      <div className="pic-grid">
+        {opts.current.map((k, i) => (
+          <PicTile key={i} wordKey={k} accent={accent}
+            wrong={wrongKey === k} dim={won && k !== word} onPick={() => pick(k)} />
+        ))}
+      </div>
+    </SharedGameFrame>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// ATRODI PĀRI — classic memory pairs over the picture emoji: 6 words,
+// 12 face-down cards. Matching a pair flips it for good and speaks the
+// word (recorded clip), so vocabulary sneaks into the fun. Stars per pair
+// drop with the mismatches it took to find it.
+// ─────────────────────────────────────────────────────────────
+const PAIRS_COUNT = 6;
+function PairsGame({ words, accent, onDone, onExit, onWordDone, onWordRecord, musicOn, onToggleMusic, onShowCards, companion }) {
+  const { setSafeTimeout } = useTimeoutBag();
+  const deck = useRefP(null);
+  if (!deck.current) {
+    const pool = buildRound(words, PAIRS_COUNT);
+    deck.current = shuffle(pool.flatMap(w => [{ w, id: w + '-a' }, { w, id: w + '-b' }]));
+  }
+  const cards = deck.current;
+
+  const [flipped, setFlipped] = useStateP([]);       // indices face-up this turn (max 2)
+  const [matched, setMatched] = useStateP([]);       // word keys already paired
+  const [won, setWon] = useStateP(false);
+  const [wrongPair, setWrongPair] = useStateP(false);
+  const missSince = useRefP(0);                      // mismatches since the last match
+  const ratings = useRefP([]);
+  const pairStart = useRefP(Date.now());
+
+  function flip(i) {
+    if (won || wrongPair) return;
+    if (flipped.length === 2 || flipped.includes(i) || matched.includes(cards[i].w)) return;
+    const next = [...flipped, i];
+    setFlipped(next);
+    if (next.length < 2) return;
+    const [a, b] = next.map(x => cards[x].w);
+    if (a === b) {
+      playSfx('win', 0.45);
+      playWord(a);
+      const m = missSince.current;
+      missSince.current = 0;
+      const stars = m === 0 ? 3 : m <= 2 ? 2 : 1;
+      const ms = Date.now() - pairStart.current;
+      pairStart.current = Date.now();
+      ratings.current = [...ratings.current, stars];
+      if (onWordDone) onWordDone(m === 0);
+      if (onWordRecord) onWordRecord({ word: a, game: 'pairs', stars, ms });
+      setSafeTimeout(() => {
+        setMatched(mw => {
+          const done = [...mw, a];
+          if (done.length === PAIRS_COUNT) {
+            setWon(true);
+            const rs = ratings.current;
+            setSafeTimeout(() => onDone(Math.max(1, Math.round(rs.reduce((x, y) => x + y, 0) / rs.length))), 1300);
+          }
+          return done;
+        });
+        setFlipped([]);
+      }, 700);
+    } else {
+      missSince.current += 1;
+      setWrongPair(true);
+      setSafeTimeout(() => { setFlipped([]); setWrongPair(false); }, 900);
+    }
+  }
+
+  return (
+    <SharedGameFrame onExit={onExit} index={matched.length} total={PAIRS_COUNT} won={won} musicOn={musicOn} onToggleMusic={onToggleMusic} onShowCards={onShowCards} companion={companion}>
+      <div style={{ textAlign: 'center', padding: '16px 28px 0' }}>
+        <span className="display" style={{ fontSize: 19, fontWeight: 500, color: 'var(--ink)' }}>
+          {won ? 'Visi pāri atrasti! 🎉' : 'Atver kartītes un atrodi pārus!'}
+        </span>
+      </div>
+
+      <div style={{
+        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '12px 20px calc(20px + var(--safe-bottom, 0px))',
+      }}>
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10,
+          width: '100%', maxWidth: 'min(400px, calc((var(--app-h, 100dvh) - 230px) * 0.72))',
+        }}>
+          {cards.map((c, i) => {
+            const isMatched = matched.includes(c.w);
+            const isUp = isMatched || flipped.includes(i);
+            const isWrong = wrongPair && flipped.includes(i);
+            return (
+              <div key={c.id} className="tile" onClick={() => flip(i)} style={{
+                aspectRatio: '1 / 1', borderRadius: 18,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: isUp ? 'var(--surface)' : accent[0],
+                boxShadow: isMatched
+                  ? `0 4px 0 ${GOLD_DARK}, 0 0 0 3px ${GOLD}`
+                  : isUp
+                    ? '0 5px 0 rgba(150,110,150,.22), 0 8px 14px rgba(140,90,130,.14)'
+                    : `0 5px 0 ${accent[1]}, 0 8px 14px rgba(140,90,130,.16)`,
+                animation: isWrong ? 'shake .5s' : (isUp ? 'pop-in .3s' : 'none'),
+                opacity: isMatched ? 0.85 : 1,
+                cursor: isUp ? 'default' : 'pointer', transition: 'background .15s, opacity .3s',
+              }}>
+                {isUp
+                  ? <span style={{ fontSize: 'min(44px, 9vw)', lineHeight: 1, filter: 'drop-shadow(0 2px 3px rgba(140,90,130,.22))' }}>{(WORDS[c.w] || {}).pic}</span>
+                  : <span className="display" style={{ fontSize: 'min(30px, 7vw)', fontWeight: 700, color: '#fff', opacity: .9 }}>?</span>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </SharedGameFrame>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // JAUKTI VĀRDI — the journey's build-from-syllables game, but over a
 // shuffled round that mixes short and long words (buildMixedRound). Wraps the
 // shared SyllableGame; earns stars like the other hub games (onDone) without
 // touching journey progress.
 // ─────────────────────────────────────────────────────────────
-function MixedWordsGame({ mode, onDone, onExit, onWordDone, onWordRecord, musicOn, onToggleMusic, onShowCards }) {
+function MixedWordsGame({ mode, onDone, onExit, onWordDone, onWordRecord, musicOn, onToggleMusic, onShowCards, companion }) {
   const SharedSyllableGame = window.SyllableGame;
   const round = useRefP(null);
   if (!round.current) round.current = buildMixedRound(ROUND_SIZE);
@@ -358,9 +560,9 @@ function MixedWordsGame({ mode, onDone, onExit, onWordDone, onWordRecord, musicO
       wordKey={word} mode={mode} accent={accent}
       progress={{ index: idx, total }}
       onWin={advance} onWordDone={onWordDone} onWordRecord={onWordRecord} gameType="mixed"
-      onExit={onExit} onShowCards={onShowCards}
+      onExit={onExit} onShowCards={onShowCards} companion={companion}
       musicOn={musicOn} onToggleMusic={onToggleMusic} />
   );
 }
 
-Object.assign(window, { ReadFindGame, FirstLetterGame, BlendGame, MixedWordsGame });
+Object.assign(window, { ReadFindGame, FirstLetterGame, BlendGame, MixedWordsGame, ListenFindGame, PairsGame });

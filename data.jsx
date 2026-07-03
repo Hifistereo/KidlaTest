@@ -374,24 +374,47 @@ function Fairy({ size = 92, mood = 'happy', float = true, buddy = null }) {
 
 // Large standalone floating companion card — used on Welcome and Reward screens
 // so the chosen character is big, eye-catching, and clearly a "friend".
+// Tappable: a poke makes it wiggle happily and burst little hearts.
 function FloatingCompanion({ src, size = 160 }) {
   const h = Math.round(size * 1.33);
+  const [wiggle, setWiggle] = React.useState(false);
+  const [burst, setBurst] = React.useState(0);
+  const wiggleT = React.useRef(null);
+  React.useEffect(() => () => clearTimeout(wiggleT.current), []);
+  const poke = () => {
+    if (window.playSfx) playSfx('win', 0.3);
+    setBurst(b => b + 1);
+    setWiggle(true);
+    clearTimeout(wiggleT.current);
+    wiggleT.current = setTimeout(() => setWiggle(false), 750);
+  };
   return (
     <div style={{ position: 'relative', display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }}>
       <div style={{
         position: 'absolute', top: -20, left: '50%', transform: 'translateX(-50%)',
         fontSize: 24, animation: 'sparkle 2.4s ease-in-out infinite', pointerEvents: 'none',
       }}>✨</div>
-      <div style={{
+      <div onClick={poke} style={{
         width: size, height: h, borderRadius: Math.round(size * 0.12),
         overflow: 'hidden', background: 'var(--surface)',
         boxShadow: '0 0 0 5px rgba(255,255,255,.92), 0 22px 55px rgba(120,60,110,.45)',
-        transform: 'rotate(5deg)',
-        animation: 'floaty 3.2s ease-in-out 0.2s infinite',
+        transform: 'rotate(5deg)', cursor: 'pointer',
+        WebkitTapHighlightColor: 'transparent', userSelect: 'none', WebkitUserSelect: 'none',
+        animation: wiggle ? 'buddy-wiggle .7s ease' : 'floaty 3.2s ease-in-out 0.2s infinite',
       }}>
-        <img src={src} alt="Mans draugs" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        <img src={src} alt="Mans draugs" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none' }}
           onError={(e) => { e.target.style.display = 'none'; }} />
       </div>
+      {burst > 0 && (
+        <div key={burst} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 3 }}>
+          {['💛', '✨', '💖'].map((e, i) => (
+            <div key={i} style={{
+              position: 'absolute', left: `${22 + i * 24}%`, top: '32%', fontSize: 24,
+              animation: `zzz-float 1.1s ease-out ${i * 0.12}s both`,
+            }}>{e}</div>
+          ))}
+        </div>
+      )}
       <div className="display" style={{
         marginTop: 14, padding: '7px 20px', borderRadius: 999,
         background: GOLD, color: '#fff', fontSize: 17, fontWeight: 700,
@@ -518,8 +541,9 @@ function StarCount({ value }) {
 
 Object.assign(window, {
   PALETTES, HUES, GOLD, GOLD_DARK, WORDS, LEVELS, CHAPTERS, CHAPTER_SIZE, TREASURES,
+  MILESTONE_CARD_IMAGES,
   LETTER_SOUNDS, LV_ALPHABET, BLEND_WORDS,
   pickDistractors, pickWordDistractors, pickLetterDistractors, shuffle,
-  Sparkle, SparkleField, Fairy, SpeechBubble, StarCount,
+  Sparkle, SparkleField, Fairy, FloatingCompanion, SpeechBubble, StarCount,
   Meadow, Butterflies, Rainbow, IconBtn, TopBar,
 });

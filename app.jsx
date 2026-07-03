@@ -2,10 +2,11 @@
 const { useState: useS, useEffect: useE, useRef: useR } = React;
 const { Welcome, GamesHub, ChapterSelect, CardGallery, FairyMap, RewardScreen, MilestonePopup } = window;
 const { TiredToast, GoodnightScreen, SleepScreen, CardPeek, ParentDashboard } = window;
-const { SyllableGame, ReadFindGame, FirstLetterGame, BlendGame, MixedWordsGame } = window;
+const { SyllableGame, ReadFindGame, FirstLetterGame, BlendGame, MixedWordsGame, ListenFindGame, PairsGame } = window;
 
-// number of milestone character images in images/milestones/ (01.png … NN.png)
-const MILESTONE_IMAGES = 26;
+// number of milestone character images in images/milestones/ (01.png … NN.png),
+// shared with data.jsx (chapter card art derives from the same set)
+const MILESTONE_IMAGES = window.MILESTONE_CARD_IMAGES || 26;
 const STREAK_STEP = 10; // pop a celebration every N words in a row
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
@@ -28,6 +29,12 @@ function loadProgress() {
   return null;
 }
 const SAVED = loadProgress();
+// Heal saves from before the final-level fix: the last level was completed but
+// currentId never advanced past it, so the last chapter's card stayed locked
+// in the album even though the journey was finished.
+if (SAVED && SAVED.levelStars && SAVED.levelStars[LEVELS.length] && SAVED.currentId === LEVELS.length) {
+  SAVED.currentId = LEVELS.length + 1;
+}
 
 // ── session history (parent dashboard) ──
 const HISTORY_KEY = 'burtu-feja-history';
@@ -353,7 +360,10 @@ function App() {
 
   function onRewardContinue() {
     if (rewardReturn === 'hub') { setScreen('hub'); return; }
-    if (activeLevel.id === currentId && currentId < LEVELS.length) setCurrentId(currentId + 1);
+    // Advance past the level just done — including the very last one: currentId
+    // goes to LEVELS.length + 1 ("journey finished") so the final chapter's
+    // card unlock check (endId < currentId) can ever become true.
+    if (activeLevel.id === currentId && currentId <= LEVELS.length) setCurrentId(currentId + 1);
     // finishing a chapter sends the child back to the chapter list (next one unlocked)
     if (newCard) { setNewCard(null); setScreen('chapters'); return; }
     setScreen('map');
@@ -381,7 +391,7 @@ function App() {
   function pickChapter(ch) { setActiveChapter(ch); setScreen('map'); }
 
   // accent colors for the hub games (match the GamesHub card hues)
-  const GAME_ACCENT = { readfind: HUES.sky, firstletter: HUES.mint, blend: HUES.peach };
+  const GAME_ACCENT = { readfind: HUES.sky, firstletter: HUES.mint, blend: HUES.peach, listen: HUES.gold, pairs: HUES.lilac };
 
   // tweak screen-preview helpers
   function preview(target) {
@@ -402,7 +412,7 @@ function App() {
   else if (screen === 'mixed') body = (
     <MixedWordsGame key={'mx' + gameNonce} mode={mode}
       onDone={onGameRoundDone} onExit={() => setScreen('hub')} onWordDone={handleWordDone}
-      onWordRecord={handleWordRecord}
+      onWordRecord={handleWordRecord} companion={companionSrc}
       onShowCards={openCards} musicOn={musicOn} onToggleMusic={toggleMusic} />
   );
   else if (screen === 'game') body = (
@@ -411,27 +421,40 @@ function App() {
       wordKey={queue[qPos]} mode={mode} accent={accent}
       progress={{ index: qPos, total: queue.length }}
       onWin={onWordWin} onExit={() => setScreen('map')} onShowCards={openCards}
+      companion={companionSrc}
       musicOn={musicOn} onToggleMusic={toggleMusic} />
   );
   else if (screen === 'readfind') body = (
     <ReadFindGame key={'rf' + gameNonce} words={unlockedWords} accent={GAME_ACCENT.readfind}
       onDone={onGameRoundDone} onExit={() => setScreen('hub')} onWordDone={handleWordDone}
-      onWordRecord={handleWordRecord}
+      onWordRecord={handleWordRecord} companion={companionSrc}
       onShowCards={openCards} musicOn={musicOn} onToggleMusic={toggleMusic} />
   );
   else if (screen === 'firstletter') body = (
     <FirstLetterGame key={'fl' + gameNonce} words={unlockedWords} accent={GAME_ACCENT.firstletter}
       onDone={onGameRoundDone} onExit={() => setScreen('hub')} onWordDone={handleWordDone}
-      onWordRecord={handleWordRecord}
+      onWordRecord={handleWordRecord} companion={companionSrc}
       onShowCards={openCards} musicOn={musicOn} onToggleMusic={toggleMusic} />
   );
   else if (screen === 'blend') body = (
     <BlendGame key={'bl' + gameNonce} words={unlockedWords} accent={GAME_ACCENT.blend}
       onDone={onGameRoundDone} onExit={() => setScreen('hub')} onWordDone={handleWordDone}
-      onWordRecord={handleWordRecord}
+      onWordRecord={handleWordRecord} companion={companionSrc}
       onShowCards={openCards} musicOn={musicOn} onToggleMusic={toggleMusic} />
   );
-  else if (screen === 'reward') body = <RewardScreen starsEarned={earned} totalStars={totalStars} newTreasure={newTreasure} newCard={newCard} onContinue={onRewardContinue} companion={companionSrc} />;
+  else if (screen === 'listen') body = (
+    <ListenFindGame key={'ls' + gameNonce} words={unlockedWords} accent={GAME_ACCENT.listen}
+      onDone={onGameRoundDone} onExit={() => setScreen('hub')} onWordDone={handleWordDone}
+      onWordRecord={handleWordRecord} companion={companionSrc}
+      onShowCards={openCards} musicOn={musicOn} onToggleMusic={toggleMusic} />
+  );
+  else if (screen === 'pairs') body = (
+    <PairsGame key={'pr' + gameNonce} words={unlockedWords} accent={GAME_ACCENT.pairs}
+      onDone={onGameRoundDone} onExit={() => setScreen('hub')} onWordDone={handleWordDone}
+      onWordRecord={handleWordRecord} companion={companionSrc}
+      onShowCards={openCards} musicOn={musicOn} onToggleMusic={toggleMusic} />
+  );
+  else if (screen === 'reward') body = <RewardScreen starsEarned={earned} totalStars={totalStars} newTreasure={newTreasure} newCard={newCard} journeyDone={!!newCard && activeLevel.id === LEVELS.length} onContinue={onRewardContinue} companion={companionSrc} />;
   else if (screen === 'goodnight') body = <GoodnightScreen sessionWords={sessionWords} sessionStars={sessionStars} onGoodnight={onGoodnight} />;
   else if (screen === 'sleep') body = <SleepScreen sleepUntil={session.sleepUntil} cooldownMs={COOLDOWN_MS} onWake={onWake} onShowCards={openCards} />;
   else if (screen === 'parentDash') body = (
@@ -489,6 +512,8 @@ function App() {
         <TweakButton label="Atrodi attēlu" onClick={() => { setGameNonce(n => n + 1); preview('readfind'); }} />
         <TweakButton label="Pirmais burts" onClick={() => { setGameNonce(n => n + 1); preview('firstletter'); }} />
         <TweakButton label="Skaņas" onClick={() => { setGameNonce(n => n + 1); preview('blend'); }} />
+        <TweakButton label="Klausies" onClick={() => { setGameNonce(n => n + 1); preview('listen'); }} />
+        <TweakButton label="Atrodi pāri" onClick={() => { setGameNonce(n => n + 1); preview('pairs'); }} />
         <TweakButton label="Jaukti vārdi" onClick={() => { setGameNonce(n => n + 1); preview('mixed'); }} />
         <TweakButton label="Balva" onClick={() => preview('reward')} />
         <TweakButton label="Sērijas balva" onClick={() => { streakRef.current = STREAK_STEP - 1; handleWordDone(true); }} />

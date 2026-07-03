@@ -175,6 +175,20 @@ body {
   25%  { opacity: .9; }
   100% { opacity: 0; transform: translate(16px, -52px) scale(1.2); }
 }
+/* companion buddy: happy wiggle when poked */
+@keyframes buddy-wiggle {
+  0%, 100% { transform: rotate(5deg) scale(1); }
+  25%      { transform: rotate(-7deg) scale(1.09); }
+  50%      { transform: rotate(8deg) scale(1.04); }
+  75%      { transform: rotate(-5deg) scale(1.07); }
+}
+/* companion buddy: jumps in from below to cheer a correct answer */
+@keyframes buddy-cheer {
+  0%   { opacity: 0; transform: translateY(80px) rotate(10deg); }
+  55%  { opacity: 1; transform: translateY(-14px) rotate(-5deg); }
+  80%  { transform: translateY(4px) rotate(3deg); }
+  100% { opacity: 1; transform: translateY(0) rotate(6deg); }
+}
 /* milestone card bursting away: squash bigger, then rocket up, spin & shrink */
 @keyframes milestone-out {
   0%   { transform: scale(1) rotate(0deg); opacity: 1; }
