@@ -29,7 +29,7 @@ function Sky({ children }) {
 // (10, 20, …). Shows a character card + streak count, then the parent
 // (App) removes it after a short timer. Non-blocking (pointer-events off).
 // ─────────────────────────────────────────────────────────────
-function MilestonePopup({ n, src, exiting }) {
+function MilestonePopup({ n, src, exiting, isNew }) {
   return (
     <div style={{
       position: 'absolute', inset: 0, zIndex: 200, pointerEvents: 'none',
@@ -73,6 +73,15 @@ function MilestonePopup({ n, src, exiting }) {
           background: 'var(--primary)', color: '#fff', fontSize: 24, fontWeight: 700,
           boxShadow: '0 6px 0 var(--primary-dark)',
         }}>🔥 {n} pēc kārtas!</div>
+        {isNew && (
+          <div style={{ marginTop: 10 }}>
+            <div className="display" style={{
+              display: 'inline-block', padding: '8px 18px', borderRadius: 999,
+              background: GOLD, color: '#fff', fontSize: 17, fontWeight: 700,
+              boxShadow: `0 5px 0 ${GOLD_DARK}`, animation: 'pop-in .4s ease .3s both',
+            }}>🎴 Jauna kartiņa albumā!</div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -349,8 +358,10 @@ function CardDetail({ chapter, isCompanion, onChoose, onClose }) {
 // game (🎴 in the top bar). The game underneath keeps running untouched.
 // A scrollable grid (view-only); tap a card to see it big.
 // ─────────────────────────────────────────────────────────────
-function CardPeek({ chapters, currentId, onClose }) {
-  const unlocked = chapters.filter(c => c.endId < currentId).length;
+function CardPeek({ chapters, currentId, streakCards = 0, onClose }) {
+  const unlocked = chapters.filter(c => c.endId < currentId).length
+    + Math.min(streakCards, STREAK_CARDS.length);
+  const totalCards = chapters.length + STREAK_CARDS.length;
   const [detail, setDetail] = useSt(null);
   return (
     <>
@@ -367,7 +378,7 @@ function CardPeek({ chapters, currentId, onClose }) {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexShrink: 0, padding: '0 16px 6px' }}>
             <div className="display" style={{ fontSize: 20, fontWeight: 600, color: 'var(--primary)', minWidth: 0 }}>🎴 Manas kartiņas</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-              <div className="display" style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', opacity: .7 }}>{unlocked} / {chapters.length}</div>
+              <div className="display" style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', opacity: .7 }}>{unlocked} / {totalCards}</div>
               <button onClick={onClose} className="kid-btn ghost" aria-label="Aizvērt"
                 style={{ width: 40, height: 40, fontSize: 17, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>✕</button>
             </div>
@@ -376,7 +387,7 @@ function CardPeek({ chapters, currentId, onClose }) {
           {unlocked === 0 ? (
             <div style={{ padding: '18px 24px 10px', textAlign: 'center' }}>
               <div style={{ fontSize: 44 }}>📖</div>
-              <div className="display" style={{ marginTop: 8, fontSize: 17, fontWeight: 600, color: 'var(--ink)', opacity: .75 }}>Vēl nav kartiņu — pabeidz nodaļu Ceļojumā!</div>
+              <div className="display" style={{ marginTop: 8, fontSize: 17, fontWeight: 600, color: 'var(--ink)', opacity: .75 }}>Vēl nav kartiņu — pabeidz nodaļu Ceļojumā vai atbildi 10 vārdus pēc kārtas!</div>
             </div>
           ) : (
             <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '8px 16px 8px' }}>
@@ -384,6 +395,10 @@ function CardPeek({ chapters, currentId, onClose }) {
                 {chapters.map((ch, i) => (
                   <CardTile key={ch.id} ch={ch} isUnlocked={ch.endId < currentId}
                     delay={i * 0.02} onOpen={setDetail} />
+                ))}
+                {STREAK_CARDS.map((sc, i) => (
+                  <CardTile key={sc.id} ch={sc} isUnlocked={sc.n <= streakCards}
+                    delay={(chapters.length + i) * 0.02} onOpen={setDetail} />
                 ))}
               </div>
             </div>
@@ -458,10 +473,12 @@ function GamesHub({ totalStars, onPick, musicOn, onToggleMusic, companion }) {
   const CARDS = [
     { key: 'map',         icon: '🗺️', hue: 'lilac', title: 'Ceļojums',      sub: 'Saliec vārdus no zilbēm' },
     { key: 'readfind',    icon: '🔎', hue: 'sky',   title: 'Atrodi attēlu',  sub: 'Izlasi vārdu, atrodi bildi' },
+    { key: 'listen',      icon: '👂', hue: 'gold',  title: 'Klausies!',      sub: 'Dzirdi vārdu, atrodi bildi' },
     { key: 'firstletter', icon: '🔤', hue: 'mint',  title: 'Pirmais burts',  sub: 'Ar kuru burtu sākas?' },
     { key: 'blend',       icon: '🔊', hue: 'peach', title: 'Skaņas',         sub: 'Klausies un saliec vārdu' },
-    { key: 'mixed',       icon: '🎲', hue: 'gold',  title: 'Jaukti vārdi',   sub: 'Saliec sajauktus vārdus' },
-    { key: 'cards',       icon: '🎴', hue: 'rose',  title: 'Manas kartiņas', sub: 'Kolekcija un tavs draugs' },
+    { key: 'mixed',       icon: '🎲', hue: 'rose',  title: 'Jaukti vārdi',   sub: 'Saliec sajauktus vārdus' },
+    { key: 'pairs',       icon: '🧩', hue: 'lilac', title: 'Atrodi pāri',    sub: 'Atmiņas spēle ar bildēm' },
+    { key: 'cards',       icon: '🎴', hue: 'sky',   title: 'Manas kartiņas', sub: 'Kolekcija un tavs draugs' },
   ];
 
   return (
@@ -538,6 +555,17 @@ function ChapterSelect({ chapters, currentId, levelStars, totalStars, onPick, on
       {/* chapter list */}
       <div className="content">
         <div className="col menu-grid">
+        {currentId > chapters[chapters.length - 1].endId && (
+          <div className="display" style={{
+            gridColumn: '1 / -1', textAlign: 'center',
+            background: 'var(--surface)', borderRadius: 24, padding: '14px 18px',
+            boxShadow: `0 6px 0 ${GOLD_DARK}, 0 10px 20px rgba(140,90,130,.16)`,
+            fontSize: 17, fontWeight: 600, color: 'var(--ink)',
+            animation: 'pop-in .5s ease both',
+          }}>
+            🏰 Viss ceļojums pabeigts! Visas kartiņas ir tavā albumā! 🎉
+          </div>
+        )}
         {chapters.map((ch, i) => {
           const state = ch.startId > currentId ? 'locked' : ch.endId < currentId ? 'done' : 'current';
           const accent = HUES[ch.levels[0].hue];
@@ -585,8 +613,11 @@ function ChapterSelect({ chapters, currentId, levelStars, totalStars, onPick, on
 // unlocked cards show the picture, the rest are grey "?" placeholders so
 // the child can see how many of the total remain. Derived from currentId.
 // ─────────────────────────────────────────────────────────────
-function CardGallery({ chapters, currentId, onBack, musicOn, onToggleMusic, companionId, onChooseCompanion }) {
-  const unlocked = chapters.filter(c => c.endId < currentId).length;
+function CardGallery({ chapters, currentId, streakCards = 0, onBack, musicOn, onToggleMusic, companionId, onChooseCompanion }) {
+  const unlockedChapters = chapters.filter(c => c.endId < currentId).length;
+  const unlockedStreak = Math.min(streakCards, STREAK_CARDS.length);
+  const unlocked = unlockedChapters + unlockedStreak;
+  const totalCards = chapters.length + STREAK_CARDS.length;
   const [detail, setDetail] = useSt(null);
   return (
     <div className="screen">
@@ -602,7 +633,7 @@ function CardGallery({ chapters, currentId, onBack, musicOn, onToggleMusic, comp
             display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 999,
             background: 'var(--surface)', fontSize: 16, fontWeight: 700, color: 'var(--primary)',
             boxShadow: '0 4px 12px rgba(140,90,130,.16)', whiteSpace: 'nowrap',
-          }}>🎴 {unlocked} / {chapters.length}</div>
+          }}>🎴 {unlocked} / {totalCards}</div>
         </>}
       />
 
@@ -615,6 +646,10 @@ function CardGallery({ chapters, currentId, onBack, musicOn, onToggleMusic, comp
               margin: '2px 0 12px',
             }}>Pieskaries kartiņai un izvēlies savu draugu! 💛</div>
           )}
+          <div className="display" style={{
+            fontSize: 14, fontWeight: 700, color: 'var(--ink)', opacity: .6,
+            margin: '4px 2px 10px', textTransform: 'uppercase', letterSpacing: 0.5,
+          }}>📖 Ceļojuma kartiņas</div>
           <div className="card-grid">
             {chapters.map((ch, i) => (
               <CardTile key={ch.id} ch={ch} isUnlocked={ch.endId < currentId}
@@ -622,6 +657,21 @@ function CardGallery({ chapters, currentId, onBack, musicOn, onToggleMusic, comp
                 delay={i * 0.03} onOpen={setDetail} />
             ))}
           </div>
+          {STREAK_CARDS.length > 0 && (
+            <>
+              <div className="display" style={{
+                fontSize: 14, fontWeight: 700, color: 'var(--ink)', opacity: .6,
+                margin: '18px 2px 10px', textTransform: 'uppercase', letterSpacing: 0.5,
+              }}>🔥 Sēriju kartiņas — 10 vārdi pēc kārtas!</div>
+              <div className="card-grid">
+                {STREAK_CARDS.map((sc, i) => (
+                  <CardTile key={sc.id} ch={sc} isUnlocked={sc.n <= streakCards}
+                    isCompanion={sc.id === companionId && sc.n <= streakCards}
+                    delay={i * 0.03} onOpen={setDetail} />
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -830,8 +880,14 @@ function FairyMap({ chapter, currentId, levelStars, totalStars, onPlay, onStartO
 // ─────────────────────────────────────────────────────────────
 // REWARD / CELEBRATION
 // ─────────────────────────────────────────────────────────────
-function RewardScreen({ starsEarned, totalStars, newTreasure, newCard, onContinue, companion }) {
+function RewardScreen({ starsEarned, totalStars, newTreasure, newCard, journeyDone, onContinue, companion }) {
   const confetti = useRf(null);
+  // the companion cheers with a different little phrase each time
+  const cheer = useRf(null);
+  if (!cheer.current) {
+    const phrases = ['Urrā! 🎉', 'Tu esi super!', 'Cik forši!', 'Malacis, draugs!', 'Vēl vienu? 😊'];
+    cheer.current = phrases[Math.floor(Math.random() * phrases.length)];
+  }
   if (!confetti.current) {
     const cols = ['#ffd1ec', '#ffe5aa', '#c9e8ff', '#d8c9ff', '#c9f3df', '#ffc9c9'];
     confetti.current = Array.from({ length: 38 }, (_, i) => ({
@@ -849,7 +905,7 @@ function RewardScreen({ starsEarned, totalStars, newTreasure, newCard, onContinu
   const nIdx = TREASURES.indexOf(next);
   const prevAt = nIdx > 0 ? TREASURES[nIdx - 1].at : 0;
   const pct = Math.min(100, Math.max(4, Math.round(((totalStars - prevAt) / (next.at - prevAt)) * 100)));
-  const praise = newCard ? 'Nodaļa pabeigta!' : starsEarned >= 3 ? 'Lieliski!' : starsEarned === 2 ? 'Malacis!' : 'Tu to spēji!';
+  const praise = journeyDone ? 'Ceļojums pabeigts! 🏰' : newCard ? 'Nodaļa pabeigta!' : starsEarned >= 3 ? 'Lieliski!' : starsEarned === 2 ? 'Malacis!' : 'Tu to spēji!';
 
   return (
     <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
@@ -872,7 +928,8 @@ function RewardScreen({ starsEarned, totalStars, newTreasure, newCard, onContinu
             <Fairy size={120} mood="cheer" buddy={null} />
           </div>
           {companion && (
-            <div style={{ animation: 'pop-in .6s ease .1s both' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, animation: 'pop-in .6s ease .1s both' }}>
+              <SpeechBubble style={{ fontSize: 14, padding: '8px 14px' }}>{cheer.current}</SpeechBubble>
               <FloatingCompanion src={companion} size={110} />
             </div>
           )}
@@ -1030,7 +1087,7 @@ function ParentDashboard({ history, currentId, levelStars, onBack }) {
   const struggling = getStrugglingWords(history);
   const hasSpeed = allWords.some(w => w.ms > 0);
 
-  const GAME_LABELS = { syllable: 'Zilbes', readfind: 'Atrodi', firstletter: '1. burts', blend: 'Skaņas', mixed: 'Jaukti' };
+  const GAME_LABELS = { syllable: 'Zilbes', readfind: 'Atrodi', firstletter: '1. burts', blend: 'Skaņas', mixed: 'Jaukti', listen: 'Klausies', pairs: 'Pāri' };
 
   return (
     <div className="screen" style={{ overflowY: 'auto' }}>

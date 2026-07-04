@@ -109,7 +109,9 @@ function ProgressDots({ index, total }) {
 }
 
 // Shared shell: top bar, sparkles, and win overlay for lesson and hub games.
-function GameFrame({ onExit, index, total, won, musicOn, onToggleMusic, onShowCards, children }) {
+// If a companion card is chosen, the buddy jumps up from the corner to cheer
+// every correct answer alongside the star burst.
+function GameFrame({ onExit, index, total, won, musicOn, onToggleMusic, onShowCards, companion, children }) {
   return (
     <div className="screen">
       <SparkleField count={7} />
@@ -125,6 +127,21 @@ function GameFrame({ onExit, index, total, won, musicOn, onToggleMusic, onShowCa
       />
       <div className="game-col">{children}</div>
       {won && <WinBurst />}
+      {won && companion && (
+        <div style={{
+          position: 'absolute', right: 16, bottom: 'calc(16px + var(--safe-bottom, 0px))',
+          zIndex: 35, pointerEvents: 'none', animation: 'buddy-cheer .6s ease both',
+        }}>
+          <div style={{
+            width: 60, height: 80, borderRadius: 10, overflow: 'hidden', background: '#fff',
+            boxShadow: '0 0 0 3px #fff, 0 10px 22px rgba(140,90,130,.45)', transform: 'rotate(6deg)',
+          }}>
+            <img src={companion} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              onError={(e) => { e.target.style.display = 'none'; }} />
+          </div>
+          <div style={{ position: 'absolute', top: -16, left: '50%', fontSize: 22, animation: 'zzz-float 1.2s ease-out .15s both' }}>💛</div>
+        </div>
+      )}
     </div>
   );
 }
@@ -151,7 +168,7 @@ function WordPictureCard({ wordKey, data, accent, won, paddingTop = 14 }) {
   );
 }
 
-function SyllableGame({ wordKey, mode, accent, progress, onWin, onExit, onWordDone, onWordRecord, gameType = 'syllable', musicOn, onToggleMusic, onShowCards }) {
+function SyllableGame({ wordKey, mode, accent, progress, onWin, onExit, onWordDone, onWordRecord, gameType = 'syllable', musicOn, onToggleMusic, onShowCards, companion }) {
   const data = WORDS[wordKey];
   const answer = data.syll;
   const n = answer.length;
@@ -339,7 +356,7 @@ function SyllableGame({ wordKey, mode, accent, progress, onWin, onExit, onWordDo
   };
 
   return (
-    <GameFrame onExit={onExit} index={progress.index} total={progress.total} won={won} musicOn={musicOn} onToggleMusic={onToggleMusic} onShowCards={onShowCards}>
+    <GameFrame onExit={onExit} index={progress.index} total={progress.total} won={won} musicOn={musicOn} onToggleMusic={onToggleMusic} onShowCards={onShowCards} companion={companion}>
       <WordPictureCard wordKey={wordKey} data={data} accent={accent} won={won} paddingTop={14} />
 
       {/* prompt */}
