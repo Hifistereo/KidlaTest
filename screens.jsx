@@ -183,25 +183,80 @@ function GoodnightScreen({ sessionWords, sessionStars, onGoodnight }) {
   );
 }
 
+// simple arithmetic parental gate — shown after the long-press below, so a
+// young child can't wake the fairy just by discovering the gesture. Numbers
+// are two-digit so it can't be brute-forced by mashing a couple of digits.
+function ParentGate({ onSuccess, onCancel }) {
+  const gen = () => ({ a: 10 + Math.floor(Math.random() * 40), b: 10 + Math.floor(Math.random() * 40) });
+  const [challenge, setChallenge] = useSt(gen);
+  const [value, setValue] = useSt('');
+  const [wrong, setWrong] = useSt(false);
+  const inputRef = useRf(null);
+  useEf(() => { inputRef.current && inputRef.current.focus(); }, []);
+
+  const submit = (e) => {
+    e.preventDefault();
+    if (Number(value) === challenge.a + challenge.b) { onSuccess(); return; }
+    setWrong(true);
+    setChallenge(gen());
+    setValue('');
+    setTimeout(() => setWrong(false), 500);
+  };
+
+  return (
+    <div onClick={onCancel} style={{
+      position: 'absolute', inset: 0, zIndex: 220, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'rgba(30,20,45,.55)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
+    }}>
+      <form onClick={e => e.stopPropagation()} onSubmit={submit} style={{
+        width: 'min(88vw, 340px)', background: 'var(--surface)', borderRadius: 26, padding: '24px 26px',
+        boxShadow: '0 20px 50px rgba(140,90,130,.35)', textAlign: 'center',
+        animation: wrong ? 'shake .4s ease' : 'pop-in .3s ease both',
+      }}>
+        <div className="display" style={{ fontSize: 15, fontWeight: 600, color: 'var(--inkSoft)' }}>Vecāku jautājums</div>
+        <div className="display" style={{ marginTop: 8, fontSize: 26, fontWeight: 700, color: 'var(--ink)' }}>
+          {challenge.a} + {challenge.b} = ?
+        </div>
+        <input ref={inputRef} type="number" inputMode="numeric" value={value}
+          onChange={e => setValue(e.target.value)}
+          style={{
+            marginTop: 14, width: '100%', textAlign: 'center', fontSize: 22, fontWeight: 700,
+            padding: '10px 12px', borderRadius: 14, border: '2px solid rgba(140,90,130,.25)',
+            fontFamily: 'inherit', boxSizing: 'border-box',
+          }} />
+        <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+          <button type="button" onClick={onCancel} className="kid-btn ghost" style={{ flex: 1, padding: '10px 0', fontSize: 16 }}>Atcelt</button>
+          <button type="submit" className="kid-btn" style={{ flex: 1, padding: '10px 0', fontSize: 16 }}>Pamodināt</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 // cooldown: the fairy sleeps while a moon travels an arc toward the sun.
 // Cards stay browsable (calm activity). Parents wake her early by holding
-// the moon for 3 seconds.
+// the moon for 3 seconds and answering a quick math check (kids can't do
+// two-digit addition, so they can't bypass the rest on their own).
 function SleepScreen({ sleepUntil, cooldownMs, onWake, onShowCards }) {
   const [now, setNow] = useSt(() => Date.now());
   useEf(() => {
-    const id = setInterval(() => setNow(Date.now()), 20000);
+    const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
   const remaining = Math.max(0, (sleepUntil || 0) - now);
   const awake = remaining <= 0;
   const p = cooldownMs > 0 ? Math.min(1, Math.max(0, 1 - remaining / cooldownMs)) : 1;
+  const remMin = Math.floor(remaining / 60000);
+  const remSec = Math.floor((remaining % 60000) / 1000);
+  const remStr = `${remMin}:${String(remSec).padStart(2, '0')}`;
 
-  // parent escape hatch: press-and-hold the moon
+  // parent escape hatch: press-and-hold the moon opens the math gate above
   const holdT = useRf(null);
   const [holding, setHolding] = useSt(false);
+  const [gateOpen, setGateOpen] = useSt(false);
   const startHold = () => {
     setHolding(true);
-    holdT.current = setTimeout(() => { setHolding(false); onWake(); }, 3000);
+    holdT.current = setTimeout(() => { setHolding(false); setGateOpen(true); }, 3000);
   };
   const endHold = () => {
     setHolding(false);
@@ -240,8 +295,12 @@ function SleepScreen({ sleepUntil, cooldownMs, onWake, onShowCards }) {
         </div>
         <div className="display" style={{ marginTop: 10, fontSize: 30, fontWeight: 700, color: '#fff' }}>Kikija guļ… 💤</div>
         <div className="display" style={{ marginTop: 6, fontSize: 16, fontWeight: 500, color: '#fff', opacity: .8 }}>Kad mēness aizies līdz saulei, viņa pamodīsies!</div>
+        <div className="display" style={{
+          marginTop: 10, fontSize: 14, fontWeight: 700, color: '#fff', opacity: .55,
+          padding: '4px 12px', borderRadius: 999, background: 'rgba(255,255,255,.12)',
+        }}>⏳ {remStr}</div>
 
-        {/* moon→sun arc (kid-friendly remaining-time visual, no countdown) */}
+        {/* moon→sun arc (kid-friendly remaining-time visual alongside the exact timer above) */}
         <div style={{ position: 'relative', width: W, height: H, marginTop: 26 }}>
           <svg width={W} height={H} style={{ position: 'absolute', inset: 0 }}>
             <path d={`M ${CX - R} ${CY} A ${R} ${R} 0 0 1 ${CX + R} ${CY}`} fill="none"
@@ -262,6 +321,7 @@ function SleepScreen({ sleepUntil, cooldownMs, onWake, onShowCards }) {
         <button onClick={onShowCards} className="kid-btn ghost" style={{ marginTop: 30, padding: '14px 34px', fontSize: 20, fontWeight: 600 }}>🎴 Manas kartiņas</button>
         </div>
       </div>
+      {gateOpen && <ParentGate onSuccess={() => { setGateOpen(false); onWake(); }} onCancel={() => setGateOpen(false)} />}
     </div>
   );
 }
