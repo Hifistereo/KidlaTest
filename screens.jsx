@@ -309,10 +309,12 @@ function SleepScreen({ sleepUntil, cooldownMs, onWake, onShowCards }) {
           <div style={{ position: 'absolute', left: CX + R - 16, top: CY - 16, fontSize: 30, opacity: .95 }}>☀️</div>
           <div
             onPointerDown={startHold} onPointerUp={endHold} onPointerLeave={endHold} onPointerCancel={endHold}
+            onContextMenu={(e) => e.preventDefault()}
             style={{
               position: 'absolute', left: mx - 22, top: my - 22, width: 44, height: 44,
               display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 34,
               cursor: 'pointer', touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none',
+              WebkitTouchCallout: 'none',
               filter: 'drop-shadow(0 0 12px rgba(255,240,180,.7))',
               transform: holding ? 'scale(1.3)' : 'scale(1)', transition: 'transform 2.9s ease',
             }}>🌙</div>
