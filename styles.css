@@ -72,7 +72,7 @@ body {
   z-index: 1; text-align: center;
   font-size: 10px; font-variant-numeric: tabular-nums;
   color: var(--ink, #333); opacity: .3;
-  pointer-events: none; user-select: none;
+  padding: 10px 0; user-select: none;
 }
 .col {
   width: min(100%, var(--col-list));
