@@ -183,9 +183,10 @@ function GoodnightScreen({ sessionWords, sessionStars, onGoodnight }) {
   );
 }
 
-// simple arithmetic parental gate — shown after the long-press below, so a
-// young child can't wake the fairy just by discovering the gesture. Numbers
-// are two-digit so it can't be brute-forced by mashing a couple of digits.
+// simple arithmetic parental gate — shown after the secret version-number tap
+// gesture (see app.jsx), so a young child can't wake the fairy or reach the
+// parent dashboard just by fumbling around. Numbers are two-digit so it can't
+// be brute-forced by mashing a couple of digits.
 function ParentGate({ onSuccess, onCancel }) {
   const gen = () => ({ a: 10 + Math.floor(Math.random() * 40), b: 10 + Math.floor(Math.random() * 40) });
   const [challenge, setChallenge] = useSt(gen);
@@ -234,9 +235,9 @@ function ParentGate({ onSuccess, onCancel }) {
 }
 
 // cooldown: the fairy sleeps while a moon travels an arc toward the sun.
-// Cards stay browsable (calm activity). Parents wake her early by holding
-// the moon for 3 seconds and answering a quick math check (kids can't do
-// two-digit addition, so they can't bypass the rest on their own).
+// Cards stay browsable (calm activity). Parents wake her early via the secret
+// version-number tap gesture in app.jsx (which opens the math check there),
+// not from anything on this screen.
 function SleepScreen({ sleepUntil, cooldownMs, onWake, onShowCards }) {
   const [now, setNow] = useSt(() => Date.now());
   useEf(() => {
@@ -249,20 +250,6 @@ function SleepScreen({ sleepUntil, cooldownMs, onWake, onShowCards }) {
   const remMin = Math.floor(remaining / 60000);
   const remSec = Math.floor((remaining % 60000) / 1000);
   const remStr = `${remMin}:${String(remSec).padStart(2, '0')}`;
-
-  // parent escape hatch: press-and-hold the moon opens the math gate above
-  const holdT = useRf(null);
-  const [holding, setHolding] = useSt(false);
-  const [gateOpen, setGateOpen] = useSt(false);
-  const startHold = () => {
-    setHolding(true);
-    holdT.current = setTimeout(() => { setHolding(false); setGateOpen(true); }, 3000);
-  };
-  const endHold = () => {
-    setHolding(false);
-    if (holdT.current) { clearTimeout(holdT.current); holdT.current = null; }
-  };
-  useEf(() => endHold, []);
 
   // moon position along the arc: left horizon → top → the sun on the right
   const W = 320, H = 150, R = 128, CX = W / 2, CY = H - 6;
@@ -308,22 +295,17 @@ function SleepScreen({ sleepUntil, cooldownMs, onWake, onShowCards }) {
           </svg>
           <div style={{ position: 'absolute', left: CX + R - 16, top: CY - 16, fontSize: 30, opacity: .95 }}>☀️</div>
           <div
-            onPointerDown={startHold} onPointerUp={endHold} onPointerLeave={endHold} onPointerCancel={endHold}
-            onContextMenu={(e) => e.preventDefault()}
             style={{
               position: 'absolute', left: mx - 22, top: my - 22, width: 44, height: 44,
               display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 34,
-              cursor: 'pointer', touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none',
-              WebkitTouchCallout: 'none',
+              userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none',
               filter: 'drop-shadow(0 0 12px rgba(255,240,180,.7))',
-              transform: holding ? 'scale(1.3)' : 'scale(1)', transition: 'transform 2.9s ease',
             }}>🌙</div>
         </div>
 
         <button onClick={onShowCards} className="kid-btn ghost" style={{ marginTop: 30, padding: '14px 34px', fontSize: 20, fontWeight: 600 }}>🎴 Manas kartiņas</button>
         </div>
       </div>
-      {gateOpen && <ParentGate onSuccess={() => { setGateOpen(false); onWake(); }} onCancel={() => setGateOpen(false)} />}
     </div>
   );
 }
@@ -1282,5 +1264,5 @@ function ParentDashboard({ history, currentId, levelStars, onBack }) {
 
 Object.assign(window, {
   Sky, MusicButton, MilestonePopup, Welcome, GamesHub, ChapterSelect, CardGallery, FairyMap, RewardScreen,
-  TiredToast, NightSky, GoodnightScreen, SleepScreen, CardPeek, CardDetail, CardTile, ParentDashboard,
+  TiredToast, NightSky, GoodnightScreen, SleepScreen, CardPeek, CardDetail, CardTile, ParentDashboard, ParentGate,
 });

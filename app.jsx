@@ -1,12 +1,19 @@
 // app.jsx — root: state machine, device scaling, theming, tweaks
 const { useState: useS, useEffect: useE, useRef: useR } = React;
 const { Welcome, GamesHub, ChapterSelect, CardGallery, FairyMap, RewardScreen, MilestonePopup } = window;
-const { TiredToast, GoodnightScreen, SleepScreen, CardPeek, ParentDashboard } = window;
+const { TiredToast, GoodnightScreen, SleepScreen, CardPeek, ParentDashboard, ParentGate } = window;
 const { SyllableGame, ReadFindGame, FirstLetterGame, BlendGame, MixedWordsGame, ListenFindGame, PairsGame } = window;
 
 // Bump alongside CACHE_NAME in sw.js so the on-screen version always matches
 // the build that's actually cached/running.
-const APP_VERSION = 'v19';
+const APP_VERSION = 'v20';
+
+// secret parent gesture: tap the version number this many times, within this
+// window, to open the math check (see ParentGate). Success either opens the
+// parent dashboard, or — if the fairy is asleep — wakes her early, bypassing
+// the rest timer. Kids won't stumble onto 5 fast taps on tiny footer text.
+const VERSION_TAP_COUNT = 5;
+const VERSION_TAP_WINDOW_MS = 2500;
 
 // number of milestone character images in images/milestones/ (01.png … NN.png),
 // shared with data.jsx (chapter card art derives from the same set)
@@ -233,6 +240,27 @@ function App() {
   // collected-cards overlay, openable from inside any game (🎴 in top bar)
   const [cardsOpen, setCardsOpen] = useS(false);
   const openCards = () => setCardsOpen(true);
+
+  // ── parent gate: tap the version number VERSION_TAP_COUNT times to open it ──
+  const [parentGateOpen, setParentGateOpen] = useS(false);
+  const versionTapsRef = useR([]);
+  function handleVersionTap() {
+    const now = Date.now();
+    const recent = versionTapsRef.current.filter(ts => now - ts < VERSION_TAP_WINDOW_MS);
+    recent.push(now);
+    versionTapsRef.current = recent;
+    if (recent.length >= VERSION_TAP_COUNT) {
+      versionTapsRef.current = [];
+      setParentGateOpen(true);
+    }
+  }
+  function handleParentGateSuccess() {
+    setParentGateOpen(false);
+    // if the fairy is asleep, this both bypasses the rest timer and wakes her;
+    // otherwise it opens the dashboard with the kid's stats and progress.
+    if (screen === 'sleep') onWake();
+    else setScreen('parentDash');
+  }
 
   // ── word-streak milestones ──
   // Each game reports every word via onWordDone(perfect). A "streak" is the
@@ -514,10 +542,11 @@ function App() {
       background: 'linear-gradient(180deg, var(--bg1) 0%, var(--bg2) 100%)',
     }}>
       <div style={{ position: 'absolute', inset: 0 }}>{body}</div>
-      <div className="app-version" aria-hidden="true">{APP_VERSION}</div>
+      <div className="app-version" onClick={handleVersionTap}>{APP_VERSION}</div>
       {cardsOpen && <CardPeek chapters={CHAPTERS} currentId={currentId} streakCards={streakCards} onClose={() => setCardsOpen(false)} />}
       {tiredToast && <TiredToast />}
       {milestone && <MilestonePopup n={milestone.n} src={milestone.src} exiting={milestone.exiting} isNew={milestone.isNew} />}
+      {parentGateOpen && <ParentGate onSuccess={handleParentGateSuccess} onCancel={() => setParentGateOpen(false)} />}
 
       <TweaksPanel title="Tweaks">
         <TweakSection label="Nodarbības veids" />
