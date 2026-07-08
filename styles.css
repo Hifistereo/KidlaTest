@@ -66,6 +66,14 @@ body {
   overflow-y: auto; overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
 }
+.app-version {
+  position: absolute; left: 0; right: 0;
+  bottom: calc(var(--safe-bottom) + 4px);
+  z-index: 1; text-align: center;
+  font-size: 10px; font-variant-numeric: tabular-nums;
+  color: var(--ink, #333); opacity: .3;
+  pointer-events: none; user-select: none;
+}
 .col {
   width: min(100%, var(--col-list));
   margin: 0 auto;

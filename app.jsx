@@ -4,6 +4,10 @@ const { Welcome, GamesHub, ChapterSelect, CardGallery, FairyMap, RewardScreen, M
 const { TiredToast, GoodnightScreen, SleepScreen, CardPeek, ParentDashboard } = window;
 const { SyllableGame, ReadFindGame, FirstLetterGame, BlendGame, MixedWordsGame, ListenFindGame, PairsGame } = window;
 
+// Bump alongside CACHE_NAME in sw.js so the on-screen version always matches
+// the build that's actually cached/running.
+const APP_VERSION = 'v19';
+
 // number of milestone character images in images/milestones/ (01.png … NN.png),
 // shared with data.jsx (chapter card art derives from the same set)
 const MILESTONE_IMAGES = window.MILESTONE_CARD_IMAGES || 26;
@@ -510,6 +514,7 @@ function App() {
       background: 'linear-gradient(180deg, var(--bg1) 0%, var(--bg2) 100%)',
     }}>
       <div style={{ position: 'absolute', inset: 0 }}>{body}</div>
+      <div className="app-version" aria-hidden="true">{APP_VERSION}</div>
       {cardsOpen && <CardPeek chapters={CHAPTERS} currentId={currentId} streakCards={streakCards} onClose={() => setCardsOpen(false)} />}
       {tiredToast && <TiredToast />}
       {milestone && <MilestonePopup n={milestone.n} src={milestone.src} exiting={milestone.exiting} isNew={milestone.isNew} />}
