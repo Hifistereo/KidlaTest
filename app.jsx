@@ -6,7 +6,7 @@ const { SyllableGame, ReadFindGame, FirstLetterGame, BlendGame, MixedWordsGame, 
 
 // Bump alongside CACHE_NAME in sw.js so the on-screen version always matches
 // the build that's actually cached/running.
-const APP_VERSION = 'v20';
+const APP_VERSION = 'v21';
 
 // secret parent gesture: tap the version number this many times, within this
 // window, to open the math check (see ParentGate). Success either opens the
