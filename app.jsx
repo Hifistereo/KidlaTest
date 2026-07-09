@@ -484,6 +484,7 @@ function App() {
       wordKey={queue[qPos]} mode={mode} accent={accent}
       progress={{ index: qPos, total: queue.length }}
       onWin={onWordWin} onExit={() => setScreen('map')} onShowCards={openCards}
+      onWordDone={handleWordDone}
       companion={companionSrc}
       musicOn={musicOn} onToggleMusic={toggleMusic} />
   );
