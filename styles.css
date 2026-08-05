@@ -15,7 +15,15 @@ body {
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
 }
-#root { width: 100%; height: var(--app-h, 100dvh); }
+/* The KidMindPath bar is fixed over the top of the viewport, so the app has to
+   start below it and be that much shorter — --app-h tracks visualViewport and
+   knows nothing about the bar. --kmp-bar-h is published by shared/kmp.js and is
+   0 when there is no bar, which is the hifistereo.github.io case. */
+#root {
+  width: 100%;
+  height: calc(var(--app-h, 100dvh) - var(--kmp-bar-h, 0px));
+  margin-top: var(--kmp-bar-h, 0px);
+}
 
 /* ── Design tokens ──
    --app-h is kept in sync with visualViewport by app.jsx so the layout

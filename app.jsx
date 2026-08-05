@@ -6,7 +6,7 @@ const { SyllableGame, ReadFindGame, FirstLetterGame, BlendGame, MixedWordsGame, 
 
 // Bump alongside CACHE_NAME in sw.js so the on-screen version always matches
 // the build that's actually cached/running.
-const APP_VERSION = 'v22';
+const APP_VERSION = 'v23';
 
 // secret parent gesture: tap the version number this many times, within this
 // window, to open the math check (see ParentGate). Success either opens the
@@ -30,8 +30,29 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
 
 const MODE_MAP = { 'Pieskaries (tap)': 'tap', 'Aizvelc (drag)': 'drag', 'Izvēlies (choose)': 'choose' };
 
+// ── KidMindPath: per-child storage ──
+// Two siblings share one tablet, so every key below is namespaced to the child
+// chosen on kidmindpath.com. KMP.key() returns the bare key when there is no
+// hub (hifistereo.github.io, or a plain file server), so nothing changes there.
+//
+// migrateKey() runs once per key and moves data that predates namespacing onto
+// the active child. Without it, everyone who has played before would appear to
+// have lost their whole journey the moment the keys changed — the data would
+// still be sitting at the old name, just never read again.
+const kmpKey = (base) => {
+  try {
+    if (window.KMP) {
+      window.KMP.migrateKey(base);
+      return window.KMP.key(base);
+    }
+  } catch (e) { /* storage unavailable — fall through to the bare key */ }
+  return base;
+};
+
 // ── progress persistence (survives reloads) ──
-const PROGRESS_KEY = 'burtu-feja-progress';
+try { window.KMP && window.KMP.homeBar({ appId: 'KidlaTest', title: 'Burtu Feja' }); } catch (e) {}
+
+const PROGRESS_KEY = kmpKey('burtu-feja-progress');
 function loadProgress() {
   try {
     const raw = localStorage.getItem(PROGRESS_KEY);
@@ -48,7 +69,7 @@ if (SAVED && SAVED.levelStars && SAVED.levelStars[LEVELS.length] && SAVED.curren
 }
 
 // ── session history (parent dashboard) ──
-const HISTORY_KEY = 'burtu-feja-history';
+const HISTORY_KEY = kmpKey('burtu-feja-history');
 const HISTORY_MAX = 90;
 function loadHistory() {
   try { const r = localStorage.getItem(HISTORY_KEY); if (r) return JSON.parse(r); } catch (e) {}
@@ -74,14 +95,14 @@ function mergeSessionIntoHistory(history, log, durationMs, levelAtEnd) {
 }
 
 // ── background-music preference (on by default, survives reloads) ──
-const MUSIC_KEY = 'burtu-feja-music';
+const MUSIC_KEY = kmpKey('burtu-feja-music');
 function loadMusicOn() {
   try { return localStorage.getItem(MUSIC_KEY) !== 'off'; } catch (e) { return true; }
 }
 
 // ── streak cards earned (album pages beyond the chapter cards) ──
 // Persisted count: the first N of STREAK_CARDS are unlocked.
-const STREAK_CARDS_KEY = 'burtu-feja-streak-cards';
+const STREAK_CARDS_KEY = kmpKey('burtu-feja-streak-cards');
 function loadStreakCards() {
   try {
     const v = parseInt(localStorage.getItem(STREAK_CARDS_KEY), 10);
@@ -93,7 +114,7 @@ function loadStreakCards() {
 // Stores the card id (chapter id, or a streak card's image number); the image
 // is derived so card-art reshuffles can't break it, and it only shows while
 // that card stays unlocked.
-const COMPANION_KEY = 'burtu-feja-companion';
+const COMPANION_KEY = kmpKey('burtu-feja-companion');
 function loadCompanion() {
   try {
     const v = parseInt(localStorage.getItem(COMPANION_KEY), 10);
@@ -105,7 +126,7 @@ function loadCompanion() {
 // One "sitting" of play: { playedMs, lastTickTs, sleepUntil }. The budget
 // resets when the fairy has finished her rest or when the app sat unused
 // long enough to count as a fresh sitting.
-const SESSION_KEY = 'burtu-feja-session';
+const SESSION_KEY = kmpKey('burtu-feja-session');
 const IDLE_RESET_MS = 30 * 60 * 1000;
 const SAVED_SESSION = (() => {
   let s = null;

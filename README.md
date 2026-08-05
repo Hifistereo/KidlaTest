@@ -60,6 +60,25 @@ uz neko.
 
 Fredoka ir pieejama svaros 400/500/600/700 un ne smagākos.
 
+## Krājumi katram bērnam atsevišķi
+
+Visas sešas atmiņas atslēgas (`app.jsx`) tiek nosauktas pēc bērna, kurš izvēlēts
+kidmindpath.com sākumlapā: `burtu-feja-progress:<bērna-id>` un tā tālāk. Divi
+bērni uz vienas planšetes vairs nepārraksta viens otra ceļojumu.
+
+`kmpKey()` to nokārto vienā vietā: tā izsauc `KMP.migrateKey()`, kas vienreiz
+pārvieto datus no vecās atslēgas uz jauno, un pēc tam `KMP.key()`. Bez
+migrācijas ikviens, kurš jau ir spēlējis, izskatītos pēc tāda, kas zaudējis visu
+ceļojumu — dati joprojām būtu vecajā atslēgā, tikai vairs netiktu nolasīti.
+
+Ja kopīgā profila nav (piemēram, atverot no `hifistereo.github.io/KidlaTest/`),
+`kmpKey()` atgriež to pašu veco atslēgu un nekas nemainās.
+
+## Josla atpakaļ uz sākumlapu
+
+`.kmp-bar` ir katrā ekrānā. `#root` augstums ir `--app-h` mīnus `--kmp-bar-h`,
+jo `--app-h` seko `visualViewport` un par joslu neko nezina.
+
 ## Drošība
 
 Lapai ir `Content-Security-Policy`, bet ir godīgi jāsaka, ko tā dod un ko ne.
