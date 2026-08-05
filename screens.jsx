@@ -503,6 +503,17 @@ function Welcome({ onStart, musicOn, onToggleMusic, companion }) {
           Sākt!
         </button>
         <div className="display" style={{ marginTop: 20, fontSize: 14, color: 'var(--ink)', opacity: .6, animation: 'slide-up .6s ease .55s both' }}>5–6 gadi · Latviešu valoda</div>
+        {/* Back to the other KidMindPath games. Welcome screen only — a control
+            that leaves the app has no business next to a running round. The URL
+            is absolute because the app is also served from
+            hifistereo.github.io/KidlaTest/, where "/" is a different site. */}
+        <a
+          className="kmp-home"
+          href="https://www.kidmindpath.com/"
+          style={{ marginTop: 26, animation: 'slide-up .6s ease .65s both' }}
+        >
+          <span aria-hidden="true">←</span> KidMindPath
+        </a>
         </div>
       </div>
     </div>

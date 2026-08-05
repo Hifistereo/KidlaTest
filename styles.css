@@ -6,7 +6,7 @@
 html, body { margin: 0; padding: 0; }
 html, body { overscroll-behavior: none; touch-action: manipulation; }
 body {
-  font-family: 'Nunito', system-ui, sans-serif;
+  font-family: var(--kmp-font-body);
   background:
     radial-gradient(120% 80% at 20% 0%, #fbe7d6 0%, transparent 60%),
     radial-gradient(120% 90% at 90% 100%, #ecd9f3 0%, transparent 55%),
@@ -15,7 +15,15 @@ body {
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
 }
-#root { width: 100%; height: var(--app-h, 100dvh); }
+/* The KidMindPath bar is fixed over the top of the viewport, so the app has to
+   start below it and be that much shorter — --app-h tracks visualViewport and
+   knows nothing about the bar. --kmp-bar-h is published by shared/kmp.js and is
+   0 when there is no bar, which is the hifistereo.github.io case. */
+#root {
+  width: 100%;
+  height: calc(var(--app-h, 100dvh) - var(--kmp-bar-h, 0px));
+  margin-top: var(--kmp-bar-h, 0px);
+}
 
 /* ── Design tokens ──
    --app-h is kept in sync with visualViewport by app.jsx so the layout
@@ -117,11 +125,11 @@ body {
 }
 
 /* ── App-wide kid-friendly type ── */
-.display { font-family: 'Fredoka', 'Nunito', sans-serif; }
+.display { font-family: var(--kmp-font-display); }
 
 /* ── Chunky button with 3D bottom ── */
 .kid-btn {
-  font-family: 'Fredoka', sans-serif;
+  font-family: var(--kmp-font-display);
   border: none; cursor: pointer;
   border-radius: 999px;
   color: #fff;
@@ -150,7 +158,7 @@ body {
 
 /* ── Tiles ── */
 .tile {
-  font-family: 'Fredoka', sans-serif;
+  font-family: var(--kmp-font-display);
   cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
   transition: transform .12s cubic-bezier(.34,1.56,.64,1), box-shadow .12s ease, opacity .15s ease;
 }
