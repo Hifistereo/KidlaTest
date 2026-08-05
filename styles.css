@@ -6,7 +6,7 @@
 html, body { margin: 0; padding: 0; }
 html, body { overscroll-behavior: none; touch-action: manipulation; }
 body {
-  font-family: 'Nunito', system-ui, sans-serif;
+  font-family: var(--kmp-font-body);
   background:
     radial-gradient(120% 80% at 20% 0%, #fbe7d6 0%, transparent 60%),
     radial-gradient(120% 90% at 90% 100%, #ecd9f3 0%, transparent 55%),
@@ -117,11 +117,11 @@ body {
 }
 
 /* ── App-wide kid-friendly type ── */
-.display { font-family: 'Fredoka', 'Nunito', sans-serif; }
+.display { font-family: var(--kmp-font-display); }
 
 /* ── Chunky button with 3D bottom ── */
 .kid-btn {
-  font-family: 'Fredoka', sans-serif;
+  font-family: var(--kmp-font-display);
   border: none; cursor: pointer;
   border-radius: 999px;
   color: #fff;
@@ -150,7 +150,7 @@ body {
 
 /* ── Tiles ── */
 .tile {
-  font-family: 'Fredoka', sans-serif;
+  font-family: var(--kmp-font-display);
   cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
   transition: transform .12s cubic-bezier(.34,1.56,.64,1), box-shadow .12s ease, opacity .15s ease;
 }

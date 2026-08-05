@@ -9,8 +9,37 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<!-- Without this the browser falls back to requesting /favicon.ico, which does
+     not exist here and logged a 404 on every load. -->
+<link rel="icon" href="icons/icon-192.png" type="image/png" />
 <link rel="apple-touch-icon" href="icons/icon-192.png" />
+<!-- Everything is served from this app: React, Babel and the fonts are all
+     vendored, so nothing is fetched from another origin.
+
+     Be clear about what this policy does and does not buy. script-src has to
+     allow BOTH 'unsafe-eval' and 'unsafe-inline' because the .jsx files are
+     transpiled in the browser by vendor/babel.min.js, which compiles them and
+     then injects the result as inline <script> elements. With both keywords
+     present, script-src stops approximately nothing — it is there for the
+     origin restriction, not as an XSS defence. Making it meaningful means
+     moving the app to a real build step, which is a separate job.
+
+     The rest of the policy still does real work: connect-src, img-src,
+     font-src and media-src pinned to 'self' mean injected code has nowhere to
+     send data, and object-src/base-uri/form-action close the usual side doors.
+
+     frame-ancestors is deliberately absent: browsers ignore it in a <meta>
+     policy and log an error for it, and GitHub Pages cannot set headers. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; media-src 'self'; connect-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'" />
+<meta name="referrer" content="no-referrer" />
 <link href="vendor/fonts/fonts.css" rel="stylesheet" />
+<!-- KidMindPath design system. This app keeps its own vendor/fonts: those are
+     the same Fredoka and Nunito files, they predate the design system, and all
+     eighteen are already in the service-worker precache — so only the tokens
+     and .kmp-home come from here. Must load before styles.css, which resolves
+     var(--kmp-*). -->
+<link href="shared/kidmindpath-tokens.css" rel="stylesheet" />
+<link href="shared/kidmindpath-ui.css" rel="stylesheet" />
 <link href="styles.css" rel="stylesheet" />
 </head>
 <body>
