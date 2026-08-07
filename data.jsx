@@ -547,7 +547,7 @@ function StarCount({ value }) {
     <div style={{
       display: 'flex', alignItems: 'center', gap: 6,
       background: 'var(--surface)', borderRadius: 999, padding: '7px 14px 7px 10px',
-      boxShadow: '0 4px 12px rgba(140,90,130,.14)', fontFamily: "'Fredoka', sans-serif",
+      boxShadow: '0 4px 12px rgba(140,90,130,.14)', fontFamily: "var(--kmp-font-display)",
       fontWeight: 600, fontSize: 18, color: 'var(--ink)',
     }}>
       <span style={{ fontSize: 20, filter: 'drop-shadow(0 1px 1px rgba(180,130,40,.4))' }}>⭐</span>

@@ -43,22 +43,27 @@ Numura pieskaršanās piecas reizes pēc kārtas atver vecāku sadaļu.
 
 ## `shared/` — KidMindPath dizaina sistēma
 
-`shared/` ir **kopija, nevis šī repozitorija kods**. Tajā ir kopīgie krāsu,
-tipogrāfijas, atstarpju un noapaļojumu marķieri, ar kuriem visas sešas
-kidmindpath.com lapas izskatās kā viena ģimene.
+`shared/` ir **kopija, nevis šī repozitorija kods**. Tajā ir Quicksand un
+Nunito fonti, kā arī kopīgie krāsu, tipogrāfijas, atstarpju un noapaļojumu
+marķieri, ar kuriem visas sešas kidmindpath.com lapas izskatās kā viena ģimene.
 
 Oriģināls: `Hifistereo/Hifistereo.github.io`, mape `shared/`. Labo tur, nevis
 šeit — vietēja izmaiņa tiek klusi pārrakstīta nākamajā sinhronizācijā.
 
-Šī lietotne **patur savus fontus mapē `vendor/fonts/`**. Tie ir tie paši Fredoka
-un Nunito faili; tie šeit bija jau pirms dizaina sistēmas, un visi astoņpadsmit
-jau ir `sw.js` kešatmiņas sarakstā. Pārvietošana neko nedotu, tāpēc no `shared/`
-šeit nāk tikai marķieri un `.kmp-home` poga.
+Šī lietotne agrāk paturēja savu fontu kopiju mapē `vendor/fonts/`, no laika
+pirms dizaina sistēmas pastāvēšanas. Tā vairs nepastāv: tajā bija tie paši
+Fredoka faili ar to pašu trūkumu (skat. zemāk), tāpēc vairs nebija iemesla
+turēt atsevišķu kopiju. `vendor/` tagad satur tikai iesaiņotās bibliotēkas
+(`react.production.min.js`, `react-dom.production.min.js`, `babel.min.js`).
 
 `shared/` jāielādē **pirms** `styles.css`, citādi katrs `var(--kmp-*)` atrisinās
 uz neko.
 
-Fredoka ir pieejama svaros 400/500/600/700 un ne smagākos.
+Quicksand nomainīja Fredoka, jo Fredoka `latin-ext` apakškopā trūkst gandrīz
+visu latviešu garumzīmju. Starpposmā tika izmēģināts arī Baloo 2 — tam
+garumzīmes (ā/ē/ī/ū) ir, bet tās vizuāli nav savietotas ar burtu. Quicksand ir
+vienīgais no trim ar pilnīgu un pareizi novietotu latviešu diakritiku.
+Pieejama svaros 400/500/600/700 un ne smagākos.
 
 ## Krājumi katram bērnam atsevišķi
 
