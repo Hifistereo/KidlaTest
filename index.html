@@ -32,12 +32,13 @@
      policy and log an error for it, and GitHub Pages cannot set headers. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; media-src 'self'; connect-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'" />
 <meta name="referrer" content="no-referrer" />
-<link href="vendor/fonts/fonts.css" rel="stylesheet" />
-<!-- KidMindPath design system. This app keeps its own vendor/fonts: those are
-     the same Fredoka and Nunito files, they predate the design system, and all
-     eighteen are already in the service-worker precache — so only the tokens
-     and .kmp-home come from here. Must load before styles.css, which resolves
-     var(--kmp-*). -->
+<!-- KidMindPath design system, including the shared Quicksand/Nunito webfonts.
+     This app used to keep its own vendor/fonts copy of Fredoka+Nunito, from
+     before the design system existed; that copy carried the same
+     missing-Latvian-diacritics defect as everywhere else, so there was no
+     longer a reason to special-case it. Must load before styles.css, which
+     resolves var(--kmp-*). -->
+<link href="shared/kidmindpath-fonts.css" rel="stylesheet" />
 <link href="shared/kidmindpath-tokens.css" rel="stylesheet" />
 <link href="shared/kidmindpath-ui.css" rel="stylesheet" />
 <!-- Classic script, before the Babel-transpiled app scripts below: they read

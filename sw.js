@@ -5,7 +5,7 @@
 // `activate`). Strategy is cache-first: the app is fully static, so once the
 // precache below is populated the game runs instantly and 100% offline.
 
-const CACHE_NAME = 'burtu-feja-v23';
+const CACHE_NAME = 'burtu-feja-v24';
 
 // Complete, explicit list of every asset the app needs at runtime.
 // NOTE: cache.addAll() is atomic — if ANY entry 404s, the whole install
@@ -16,9 +16,9 @@ const PRECACHE = [
   'manifest.json',
   'styles.css',
 
-  // KidMindPath design system (tokens + .kmp-home). The webfonts are NOT here:
-  // this app keeps its own copies under vendor/fonts, listed further down.
+  // KidMindPath design system, including the shared webfonts.
   'shared/kmp.js',
+  'shared/kidmindpath-fonts.css',
   'shared/kidmindpath-tokens.css',
   'shared/kidmindpath-ui.css',
 
@@ -32,26 +32,25 @@ const PRECACHE = [
   'vendor/react-dom.production.min.js',
   'vendor/babel.min.js',
 
-  // fonts (css + every woff2 it lazily references)
-  'vendor/fonts/fonts.css',
-  'vendor/fonts/fredoka-400-normal-latin-ext.woff2',
-  'vendor/fonts/fredoka-400-normal-latin.woff2',
-  'vendor/fonts/fredoka-500-normal-latin-ext.woff2',
-  'vendor/fonts/fredoka-500-normal-latin.woff2',
-  'vendor/fonts/fredoka-600-normal-latin-ext.woff2',
-  'vendor/fonts/fredoka-600-normal-latin.woff2',
-  'vendor/fonts/fredoka-700-normal-latin-ext.woff2',
-  'vendor/fonts/fredoka-700-normal-latin.woff2',
-  'vendor/fonts/nunito-400-normal-latin-ext.woff2',
-  'vendor/fonts/nunito-400-normal-latin.woff2',
-  'vendor/fonts/nunito-600-normal-latin-ext.woff2',
-  'vendor/fonts/nunito-600-normal-latin.woff2',
-  'vendor/fonts/nunito-700-normal-latin-ext.woff2',
-  'vendor/fonts/nunito-700-normal-latin.woff2',
-  'vendor/fonts/nunito-700-italic-latin-ext.woff2',
-  'vendor/fonts/nunito-700-italic-latin.woff2',
-  'vendor/fonts/nunito-800-normal-latin-ext.woff2',
-  'vendor/fonts/nunito-800-normal-latin.woff2',
+  // fonts (css above + every woff2 it lazily references)
+  'shared/fonts/quicksand-400-normal-latin-ext.woff2',
+  'shared/fonts/quicksand-400-normal-latin.woff2',
+  'shared/fonts/quicksand-500-normal-latin-ext.woff2',
+  'shared/fonts/quicksand-500-normal-latin.woff2',
+  'shared/fonts/quicksand-600-normal-latin-ext.woff2',
+  'shared/fonts/quicksand-600-normal-latin.woff2',
+  'shared/fonts/quicksand-700-normal-latin-ext.woff2',
+  'shared/fonts/quicksand-700-normal-latin.woff2',
+  'shared/fonts/nunito-400-normal-latin-ext.woff2',
+  'shared/fonts/nunito-400-normal-latin.woff2',
+  'shared/fonts/nunito-600-normal-latin-ext.woff2',
+  'shared/fonts/nunito-600-normal-latin.woff2',
+  'shared/fonts/nunito-700-normal-latin-ext.woff2',
+  'shared/fonts/nunito-700-normal-latin.woff2',
+  'shared/fonts/nunito-700-italic-latin-ext.woff2',
+  'shared/fonts/nunito-700-italic-latin.woff2',
+  'shared/fonts/nunito-800-normal-latin-ext.woff2',
+  'shared/fonts/nunito-800-normal-latin.woff2',
 
   // app source (transpiled in-browser by babel)
   'tweaks-panel.jsx',
