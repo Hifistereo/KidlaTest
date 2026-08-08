@@ -133,24 +133,27 @@ function ReadFindGame({ words, accent, onDone, onExit, onWordDone, onWordRecord,
         </span>
       </div>
 
-      {/* the written word — read first, no picture, no pre-audio */}
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '18px 22px 0' }}>
-        <div style={{
-          background: 'var(--surface)', borderRadius: 28, padding: '18px 34px',
-          boxShadow: '0 12px 26px rgba(140,90,130,.16)',
-        }}>
-          <span className="display" style={{ fontSize: 48, fontWeight: 600, letterSpacing: 2, color: 'var(--primary)' }}>{word}</span>
+      {/* Word + picture choices centered together as one group, so they fill
+          the space evenly instead of the word sitting high with a big gap and
+          the bottom row of pictures running off the screen. */}
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 'clamp(14px, 3vh, 34px)' }}>
+        {/* the written word — read first, no picture, no pre-audio */}
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '0 22px' }}>
+          <div style={{
+            background: 'var(--surface)', borderRadius: 28, padding: '18px 34px',
+            boxShadow: '0 12px 26px rgba(140,90,130,.16)',
+          }}>
+            <span className="display" style={{ fontSize: 48, fontWeight: 600, letterSpacing: 2, color: 'var(--primary)' }}>{word}</span>
+          </div>
         </div>
-      </div>
 
-      <div style={{ flex: 1 }} />
-
-      {/* picture choices */}
-      <div className="pic-grid">
-        {opts.current.map((k, i) => (
-          <PicTile key={i} wordKey={k} accent={accent}
-            wrong={wrongKey === k} dim={won && k !== word} onPick={() => pick(k)} />
-        ))}
+        {/* picture choices */}
+        <div className="pic-grid">
+          {opts.current.map((k, i) => (
+            <PicTile key={i} wordKey={k} accent={accent}
+              wrong={wrongKey === k} dim={won && k !== word} onPick={() => pick(k)} />
+          ))}
+        </div>
       </div>
     </SharedGameFrame>
   );
@@ -198,19 +201,17 @@ function FirstLetterGame({ words, accent, onDone, onExit, onWordDone, onWordReco
 
   return (
     <SharedGameFrame onExit={onExit} index={idx} total={total} won={won} musicOn={musicOn} onToggleMusic={onToggleMusic} onShowCards={onShowCards} companion={companion}>
-      {/* picture card (tap to hear) */}
-      <SharedWordPictureCard wordKey={word} data={data} accent={accent} won={won} paddingTop={18} />
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'safe center', gap: 'clamp(14px, 3vh, 30px)' }}>
+        {/* picture card (tap to hear) */}
+        <SharedWordPictureCard wordKey={word} data={data} accent={accent} won={won} paddingTop={0} />
+        <div style={{ textAlign: 'center', padding: '0 28px' }}>
+          <span className="display" style={{ fontSize: 19, fontWeight: 500, color: 'var(--ink)' }}>
+            {won ? 'Lieliski! 🎉' : 'Ar kuru burtu sākas vārds?'}
+          </span>
+        </div>
 
-      <div style={{ textAlign: 'center', padding: '16px 28px 0' }}>
-        <span className="display" style={{ fontSize: 19, fontWeight: 500, color: 'var(--ink)' }}>
-          {won ? 'Lieliski! 🎉' : 'Ar kuru burtu sākas vārds?'}
-        </span>
-      </div>
-
-      <div style={{ flex: 1 }} />
-
-      {/* letter choices */}
-      <div style={{ display: 'flex', gap: 16, justifyContent: 'center', padding: '0 22px calc(40px + var(--safe-bottom, 0px))' }}>
+        {/* letter choices */}
+        <div style={{ display: 'flex', gap: 16, justifyContent: 'center', padding: '0 22px calc(20px + var(--safe-bottom, 0px))' }}>
         {opts.current.map((l, i) => (
           <div key={i} className="tile" onClick={() => pick(l)} style={{
             width: 'clamp(72px, 20vw, 100px)', aspectRatio: '1 / 1', borderRadius: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -222,6 +223,7 @@ function FirstLetterGame({ words, accent, onDone, onExit, onWordDone, onWordReco
             <span className="display" style={{ fontSize: 46, fontWeight: 600, color: (won && l === first) ? '#fff' : 'var(--primary)' }}>{l}</span>
           </div>
         ))}
+        </div>
       </div>
     </SharedGameFrame>
   );
@@ -320,7 +322,7 @@ function BlendGame({ words, accent, onDone, onExit, onWordDone, onWordRecord, mu
         </button>
       </div>
 
-      <div style={{ flex: 1 }} />
+      <div style={{ flex: '0 0 clamp(14px, 3vh, 30px)' }} />
 
       {/* picture choices */}
       <div style={{
@@ -420,7 +422,7 @@ function ListenFindGame({ words, accent, onDone, onExit, onWordDone, onWordRecor
         </button>
       </div>
 
-      <div style={{ flex: 1 }} />
+      <div style={{ flex: '0 0 clamp(14px, 3vh, 30px)' }} />
 
       {/* picture choices */}
       <div className="pic-grid">

@@ -92,7 +92,7 @@ body {
   width: min(100%, var(--col-game));
   margin: 0 auto;
   flex: 1; min-height: 0;
-  display: flex; flex-direction: column;
+  display: flex; flex-direction: column; justify-content: safe center;
   overflow-y: auto; overflow-x: hidden; /* very short viewports scroll instead of clipping */
 }
 

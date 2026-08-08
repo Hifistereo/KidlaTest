@@ -370,7 +370,7 @@ function SyllableGame({ wordKey, mode, accent, progress, onWin, onExit, onWordDo
       </div>
 
       {/* spacer pushes tray to bottom */}
-      <div style={{ flex: 1 }} />
+      <div style={{ flex: '0 0 clamp(14px, 3vh, 30px)' }} />
 
       {/* tray / options */}
       <div style={{ padding: '0 22px calc(min(30px, var(--app-h, 100dvh) * 0.035) + var(--safe-bottom, 0px))' }}>
